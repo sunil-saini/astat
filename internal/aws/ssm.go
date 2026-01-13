@@ -28,8 +28,10 @@ func FetchSSMParameters(ctx context.Context, cfg sdkaws.Config) ([]model.SSMPara
 
 		for _, p := range out.Parameters {
 			params = append(params, model.SSMParameter{
-				Name: *p.Name,
-				Type: string(p.Type),
+				Name:         *p.Name,
+				Type:         string(p.Type),
+				LastModified: p.LastModifiedDate.Format("2006-01-02 15:04:05"),
+				ModifiedBy:   *p.LastModifiedUser,
 			})
 		}
 

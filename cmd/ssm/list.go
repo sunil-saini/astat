@@ -41,10 +41,12 @@ var listCmd = &cobra.Command{
 			rows = append(rows, []string{
 				p.Name,
 				p.Type,
+				p.LastModified,
+				p.ModifiedBy,
 			})
 		}
 		return render.Print(render.TableData{
-			Headers: []string{"Name", "Type"},
+			Headers: []string{"Name", "Type", "Last Modified", "Modified By"},
 			Rows:    rows,
 			JSON:    params,
 		})

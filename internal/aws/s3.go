@@ -18,17 +18,10 @@ func FetchS3Buckets(ctx context.Context, cfg sdkaws.Config) ([]model.S3Bucket, e
 	}
 
 	var buckets []model.S3Bucket
-
 	for _, b := range out.Buckets {
-		cd := ""
-		if b.CreationDate != nil {
-			cd = b.CreationDate.Format(time.RFC3339)
-		}
-
 		buckets = append(buckets, model.S3Bucket{
 			Name:         *b.Name,
-			CreationDate: cd,
-			Region:       "unknown", // region is per-bucket, optional later
+			CreationDate: b.CreationDate.Format(time.RFC3339),
 		})
 	}
 

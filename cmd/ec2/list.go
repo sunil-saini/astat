@@ -57,12 +57,13 @@ Examples:
 				i.AZ,
 				i.PrivateIP,
 				i.PublicIP,
+				i.LaunchTime,
 			})
 		}
 
 		return render.Print(render.TableData{
 			Headers: []string{
-				"ID", "Name", "State", "Type", "AZ", "Private IP", "Public IP",
+				"ID", "Name", "State", "Type", "AZ", "Private IP", "Public IP", "Launch Time",
 			},
 			Rows: rows,
 			JSON: instances,

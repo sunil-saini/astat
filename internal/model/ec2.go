@@ -8,4 +8,5 @@ type EC2Instance struct {
 	AZ           string
 	PrivateIP    string
 	PublicIP     string
+	LaunchTime   string
 }

@@ -13,7 +13,8 @@ func Load(path string, v any) (bool, error) {
 	}
 
 	if err := Read(path, v); err != nil {
-		return false, err
+		// If read or unmarshal fails, treat it as a cache miss
+		return false, nil
 	}
 
 	return true, nil

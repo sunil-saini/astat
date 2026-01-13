@@ -47,6 +47,7 @@ func FetchEC2Instances(ctx context.Context, cfg sdkaws.Config) ([]model.EC2Insta
 				AZ:           *inst.Placement.AvailabilityZone,
 				PrivateIP:    privateIP,
 				PublicIP:     publicIP,
+				LaunchTime:   inst.LaunchTime.Format("2006-01-02 15:04:05"),
 			})
 		}
 	}

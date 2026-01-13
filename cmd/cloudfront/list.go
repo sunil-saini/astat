@@ -42,10 +42,12 @@ var listCmd = &cobra.Command{
 				d.ID,
 				d.Domain,
 				d.Status,
+				d.LastUpdated,
+				d.Aliases,
 			})
 		}
 		return render.Print(render.TableData{
-			Headers: []string{"ID", "Domain", "Status"},
+			Headers: []string{"ID", "Domain", "Status", "LastUpdated", "Aliases"},
 			Rows:    rows,
 			JSON:    dists,
 		})

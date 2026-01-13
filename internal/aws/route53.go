@@ -30,9 +30,16 @@ func FetchHostedZones(ctx context.Context, cfg sdkaws.Config) ([]model.Route53Ho
 		}
 
 		for _, z := range out.HostedZones {
+			zoneType := "public"
+			if z.Config.PrivateZone {
+				zoneType = "private"
+			}
+
 			zones = append(zones, model.Route53HostedZone{
-				ID:   *z.Id,
-				Name: *z.Name,
+				ID:      *z.Id,
+				Name:    *z.Name,
+				Type:    zoneType,
+				Records: fmt.Sprintf("%d", *z.ResourceRecordSetCount),
 			})
 		}
 

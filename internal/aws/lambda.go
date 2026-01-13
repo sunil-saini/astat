@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -27,10 +28,11 @@ func FetchLambdaFunctions(ctx context.Context, cfg sdkaws.Config) ([]model.Lambd
 
 		for _, f := range out.Functions {
 			funcs = append(funcs, model.LambdaFunction{
-				Name:    *f.FunctionName,
-				Runtime: string(f.Runtime),
-				Handler: *f.Handler,
-				Region:  cfg.Region,
+				Name:         sdkaws.ToString(f.FunctionName),
+				Runtime:      string(f.Runtime),
+				LastModified: sdkaws.ToString(f.LastModified),
+				Memory:       fmt.Sprintf("%d", sdkaws.ToInt32(f.MemorySize)),
+				Timeout:      fmt.Sprintf("%d", sdkaws.ToInt32(f.Timeout)),
 			})
 		}
 
