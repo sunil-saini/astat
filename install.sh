@@ -50,4 +50,7 @@ else
 fi
 
 echo "✅ $BINARY_NAME installed successfully to $DEST"
-echo "✨ Run 'astat install' to complete the setup (autocomplete, etc.)"
+echo "⚙️  Running setup..."
+if ! "$DEST" install; then
+    echo "⚠️  Setup encountered some issues. You might want to run 'astat install' manually to complete the configuration."
+fi

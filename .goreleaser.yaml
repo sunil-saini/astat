@@ -21,7 +21,7 @@ builds:
 
 archives:
   - id: astat
-    format: tar.gz
+    formats: ["tar.gz"]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
