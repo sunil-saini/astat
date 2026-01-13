@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -28,7 +29,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "astat",
 	Short: "⚡ Lightning fast local AWS stats indexer",
-	Long: `astat - AWS Status
+	Long: `astat - AWS Stats
 
 A blazing fast CLI tool that caches AWS resources details locally,
 providing instant access to cloud infrastructure
@@ -169,15 +170,23 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		viper.SetConfigName("config")
+		home, err := os.UserHomeDir()
+		if err != nil {
+			logger.Error("Failed to get home directory: %v", err)
+			return
+		}
+
+		viper.AddConfigPath(filepath.Join(home, ".config", "astat"))
 		viper.SetConfigType("yaml")
-		viper.AddConfigPath("$HOME/.config/astat")
+		viper.SetConfigName("config")
 	}
 
-	viper.SetEnvPrefix("CLIDX")
+	viper.SetEnvPrefix("ASTAT")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.Error("Failed to read config file: %s: %v", viper.ConfigFileUsed(), err)
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			logger.Error("Failed to read config file: %v", err)
+		}
 	}
 }

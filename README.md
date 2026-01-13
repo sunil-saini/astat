@@ -1,12 +1,18 @@
 <div align="center">
 
-```
-     /\     / ___| |_   / \  |_   _|
-    /  \    \___ \  | | / _ \   | |  
-   / /\ \    ___) | | |/ ___ \  | |  
-  /_/  \_\  |____/  |_/_/   \_\ |_|  
-                                     
-```
+<table>
+<tr>
+<td align="left">
+<pre>
+    ___    _____ _______  ___  ______
+   /   |  / ___//_  __/ /   |/_  __/
+  / /| |  \__ \  / /   / /| | / /   
+ / ___ |___/ / / /   / ___ |/ /    
+/_/  |_/____/ /_/   /_/  |_/_/     
+</pre>
+</td>
+</tr>
+</table>
 
 **⚡ Lightning fast local AWS Stats indexer**
 
@@ -81,7 +87,14 @@ $ time astat <service> list
 
 ## 📦 Installation
 
-### Homebrew (Recommended for macOS/Linux)
+
+### One Liner Script
+
+```bash
+curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/refs/heads/main/install.sh | sh
+```
+
+### Homebrew
 
 ```bash
 brew install sunil-saini/tap/astat
@@ -93,18 +106,18 @@ Download the latest binary for your platform:
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_Darwin_arm64.tar.gz
-tar -xzf astat_Darwin_arm64.tar.gz
+curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_darwin_arm64.tar.gz
+tar -xzf astat_darwin_arm64.tar.gz
 sudo mv astat /usr/local/bin/
 
 # macOS (Intel)
-curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_Darwin_x86_64.tar.gz
-tar -xzf astat_Darwin_x86_64.tar.gz
+curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_darwin_x86_64.tar.gz
+tar -xzf astat_darwin_x86_64.tar.gz
 sudo mv astat /usr/local/bin/
 
 # Linux (amd64)
-curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_Linux_x86_64.tar.gz
-tar -xzf astat_Linux_x86_64.tar.gz
+curl -LO https://github.com/sunil-saini/astat/releases/latest/download/astat_linux_x86_64.tar.gz
+tar -xzf astat_linux_x86_64.tar.gz
 sudo mv astat /usr/local/bin/
 ```
 
@@ -112,12 +125,6 @@ sudo mv astat /usr/local/bin/
 
 ```bash
 go install github.com/sunil-saini/astat@latest
-```
-
-### One-Liner Script
-
-```bash
-curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/main/install.sh | sh
 ```
 
 ## 🚀 Quick Start

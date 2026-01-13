@@ -45,6 +45,11 @@ var installCmd = &cobra.Command{
 			spinner.Warning("Could not detect shell for autocomplete setup")
 		}
 
+		// 3. Config initialization
+		spinner.UpdateText("Initializing configuration...")
+		installConfig()
+		spinner.Success("Configuration initialized")
+
 		fmt.Println()
 		pterm.Success.Println("Installation complete! ✨")
 		fmt.Println()
@@ -103,4 +108,36 @@ func installBinary() {
 	}
 
 	logger.Success("Installed astat to %s", target)
+}
+
+func installConfig() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		logger.Error("Failed to get home directory: %v", err)
+		return
+	}
+
+	configDir := filepath.Join(home, ".config", "astat")
+	configFile := filepath.Join(configDir, "config.yaml")
+
+	// Create directory if it doesn't exist
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			logger.Error("Failed to create config directory: %v", err)
+			return
+		}
+	}
+
+	// Create default config file if it doesn't exist
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		defaultConfig := []byte(`ttl: 24h
+auto-refresh: true
+output: table
+`)
+		if err := os.WriteFile(configFile, defaultConfig, 0644); err != nil {
+			logger.Error("Failed to create default config file: %v", err)
+			return
+		}
+		logger.Success("Created default configuration at %s", configFile)
+	}
 }

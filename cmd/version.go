@@ -13,6 +13,6 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("astat version %s\n", version.Version)
 		fmt.Printf("commit: %s\n", version.Commit)
-		fmt.Printf("built: %s\n", version.Date)
+		fmt.Printf("built date: %s\n", version.Date)
 	},
 }
