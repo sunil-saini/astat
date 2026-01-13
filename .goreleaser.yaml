@@ -19,6 +19,11 @@ builds:
       - -X github.com/sunil-saini/astat/internal/version.Commit={{.Commit}}
       - -X github.com/sunil-saini/astat/internal/version.Date={{.Date}}
 
+before:
+  hooks:
+    - go mod tidy
+    - bash -c "mkdir -p completions && go run . completion bash > completions/astat.bash && go run . completion zsh > completions/astat.zsh && go run . completion fish > completions/astat.fish"
+
 archives:
   - id: astat
     formats: ["tar.gz"]
@@ -32,6 +37,7 @@ archives:
     files:
       - README.md
       - LICENSE
+      - completions/*
 
 checksum:
   name_template: "checksums.txt"
@@ -75,6 +81,7 @@ brews:
     homepage: https://github.com/sunil-saini/astat
     description: "A Lightning fast local AWS Stats indexer"
     license: MIT
+    directory: Formula
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     install: |
       bin.install "astat"

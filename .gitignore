@@ -34,4 +34,5 @@ go.work.sum
 astat
 RELEASE.md
 release.sh
-
+completions/
+dist/

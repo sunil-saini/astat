@@ -1,3 +1,4 @@
+<a id="top"></a>
 <div align="center">
 
 <table>
@@ -309,7 +310,7 @@ Built with these amazing tools:
 
 <div align="center">
 
-**[⬆ back to top](#)**
+**[⬆ back to top](#top)**
 
 Made with ❤️ by [Sunil Saini](https://github.com/sunil-saini)
 
