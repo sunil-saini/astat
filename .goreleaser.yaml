@@ -1,0 +1,68 @@
+# GoReleaser configuration for astat
+version: 2
+
+builds:
+  - id: astat
+    main: ./main.go
+    binary: astat
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/sunil-saini/astat/internal/version.Version={{.Version}}
+      - -X github.com/sunil-saini/astat/internal/version.Commit={{.Commit}}
+      - -X github.com/sunil-saini/astat/internal/version.Date={{.Date}}
+
+archives:
+  - id: astat
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+brews:
+  - name: astat
+    repository:
+      owner: sunil-saini
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    homepage: https://github.com/sunil-saini/astat
+    description: "A Lightning fast local AWS Stats indexer"
+    license: MIT
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    install: |
+      bin.install "astat"
+      bash_completion.install "completions/astat.bash" => "astat"
+      zsh_completion.install "completions/astat.zsh" => "_astat"
+      fish_completion.install "completions/astat.fish"
+    test: |
+      system "#{bin}/astat", "version"
