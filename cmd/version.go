@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/pterm/pterm"
+	"github.com/pterm/pterm/putils"
 	"github.com/spf13/cobra"
 	"github.com/sunil-saini/astat/internal/version"
 )
@@ -11,8 +11,18 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("version: %s\n", version.Version)
-		fmt.Printf("commit: %s\n", version.Commit)
-		fmt.Printf("built date: %s\n", version.Date)
+		pterm.DefaultBigText.WithLetters(
+			putils.LettersFromString("astat"),
+		).Render()
+
+		pterm.DefaultSection.Println("AWS Stats Indexer")
+
+		data := pterm.TableData{
+			{"Version", pterm.Cyan(version.Version)},
+			{"Commit", pterm.Cyan(version.Commit)},
+			{"Built Date", pterm.Cyan(version.Date)},
+		}
+
+		pterm.DefaultTable.WithData(data).Render()
 	},
 }

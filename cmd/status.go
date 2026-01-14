@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sunil-saini/astat/internal/cache"
@@ -59,43 +60,68 @@ Examples:
 		ttl := viper.GetDuration("ttl")
 		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm", "elb"}
 
-		logger.Info("Overall Last Refresh: %v", meta.LastUpdated.Format(time.RFC1123))
-		logger.Info("TTL: %v", ttl)
+		pterm.DefaultSection.Println("Cache Status")
+		pterm.Printf("%s: %s\n", pterm.LightMagenta("Last Refresh"), pterm.Cyan(meta.LastUpdated.Format(time.RFC1123)))
+		pterm.Printf("%s:          %s\n\n", pterm.LightMagenta("TTL"), pterm.Cyan(ttl))
+
+		data := pterm.TableData{
+			{"Service", "Status", "Age"},
+			{"───────────────", "───────────────", "───────────────"},
+		}
 
 		isAnyStale := false
 		for _, s := range allServices {
 			sMeta, ok := meta.Services[s]
 			if !ok {
-				logger.Warn("%-12s: NEVER REFRESHED", s)
+				data = append(data, []string{s, pterm.LightRed("✗ NEVER"), pterm.LightRed("-")})
 				isAnyStale = true
 				continue
 			}
 
 			if sMeta.Refreshing && refresh.IsProcessAlive(sMeta.BusyPID) {
-				logger.Info("%-12s: REFRESHING (PID: %d)", s, sMeta.BusyPID)
+				data = append(data, []string{s, pterm.LightBlue("● REFRESHING"), pterm.LightBlue(fmt.Sprintf("PID: %d", sMeta.BusyPID))})
 				continue
 			}
 
-			age := time.Since(sMeta.LastUpdated)
-			if age > ttl {
-				logger.Warn("%-12s: STALE (%v ago)", s, age.Truncate(time.Second))
-				isAnyStale = true
+			statusText := pterm.LightGreen("✓ FRESH")
+			ageText := pterm.LightGreen("-")
+
+			if !sMeta.LastUpdated.IsZero() {
+				age := time.Since(sMeta.LastUpdated).Truncate(time.Second)
+				ageText = pterm.LightGreen(age.String() + " ago")
+
+				if age > ttl {
+					statusText = pterm.LightYellow("⚠ STALE")
+					ageText = pterm.LightYellow(age.String() + " ago")
+					isAnyStale = true
+				}
 			} else {
-				logger.Success("%-12s: FRESH (%v ago)", s, age.Truncate(time.Second))
+				statusText = pterm.LightYellow("⚠ STALE")
+				isAnyStale = true
 			}
+
+			data = append(data, []string{s, statusText, ageText})
 		}
+
+		pterm.DefaultTable.
+			WithBoxed().
+			WithHasHeader().
+			WithHeaderStyle(pterm.NewStyle(pterm.FgLightCyan, pterm.Bold)).
+			WithData(data).
+			Render()
 
 		if isAnyStale && !cacheInitialized {
 			if viper.GetBool("auto-refresh") {
-				logger.Info("Auto-refresh is enabled. Stale services will be updated on next command")
+				pterm.Println()
+				pterm.Info.Println("Auto-refresh is enabled. Stale services will be updated on next command")
 			}
 		}
 
-		fmt.Println()
 		available, latestVersion, _, err := version.IsUpgradeAvailable()
 		if err == nil && available {
-			logger.Warn("New version available: %s (current: %s)", latestVersion, version.Version)
-			logger.Info("Run 'astat upgrade' to update")
+			pterm.Println()
+			pterm.Warning.Printf("New version available: %s (current: %s)\n", pterm.Green(latestVersion), version.Version)
+			pterm.Info.Println("Run 'astat upgrade' to update")
 		}
 	},
 }
