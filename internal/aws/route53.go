@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
-	"github.com/sourcegraph/conc/pool"
+	"github.com/spf13/viper"
 	"github.com/sunil-saini/astat/internal/model"
 )
 
@@ -54,9 +55,12 @@ func FetchHostedZones(ctx context.Context, cfg sdkaws.Config) ([]model.Route53Ho
 
 func FetchAllRoute53Records(ctx context.Context, cfg sdkaws.Config) ([]model.Route53Record, error) {
 	client := route53.NewFromConfig(cfg)
-	p := pool.NewWithResults[[]model.Route53Record]().
-		WithContext(ctx).
-		WithMaxGoroutines(5)
+	maxRecords := viper.GetInt("route53-max-records")
+
+	var allRecords []model.Route53Record
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 5) // Limit concurrency to 5
 
 	var marker *string
 	for {
@@ -72,25 +76,35 @@ func FetchAllRoute53Records(ctx context.Context, cfg sdkaws.Config) ([]model.Rou
 		}
 
 		for _, zone := range out.HostedZones {
+			if maxRecords > 0 && zone.ResourceRecordSetCount != nil && int(*zone.ResourceRecordSetCount) > maxRecords {
+				continue
+			}
+
 			zoneID := strings.TrimPrefix(*zone.Id, "/hostedzone/")
 			zoneName := *zone.Name
-			p.Go(func(ctx context.Context) ([]model.Route53Record, error) {
+
+			wg.Add(1)
+			go func(zID, zName string) {
+				defer wg.Done()
+				sem <- struct{}{}        // Acquire
+				defer func() { <-sem }() // Release
+
 				var records []model.Route53Record
 				var startName *string
 				var startType types.RRType
 
 				for {
 					if err := ctx.Err(); err != nil {
-						return nil, err
+						return
 					}
 					rout, err := client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
-						HostedZoneId:    &zoneID,
+						HostedZoneId:    &zID,
 						StartRecordName: startName,
 						StartRecordType: startType,
 						MaxItems:        sdkaws.Int32(300),
 					})
 					if err != nil {
-						return nil, err
+						return
 					}
 
 					for _, r := range rout.ResourceRecordSets {
@@ -108,10 +122,15 @@ func FetchAllRoute53Records(ctx context.Context, cfg sdkaws.Config) ([]model.Rou
 							value = *r.ResourceRecords[0].Value
 						}
 
+						recordType := string(r.Type)
+						if r.AliasTarget != nil {
+							recordType = "Alias+" + recordType
+						}
+
 						records = append(records, model.Route53Record{
-							ZoneName: zoneName,
+							ZoneName: zName,
 							Name:     *r.Name,
-							Type:     string(r.Type),
+							Type:     recordType,
 							TTL:      ttl,
 							Value:    value,
 						})
@@ -123,8 +142,11 @@ func FetchAllRoute53Records(ctx context.Context, cfg sdkaws.Config) ([]model.Rou
 					startName = rout.NextRecordName
 					startType = rout.NextRecordType
 				}
-				return records, nil
-			})
+
+				mu.Lock()
+				allRecords = append(allRecords, records...)
+				mu.Unlock()
+			}(zoneID, zoneName)
 		}
 
 		if !out.IsTruncated {
@@ -133,15 +155,6 @@ func FetchAllRoute53Records(ctx context.Context, cfg sdkaws.Config) ([]model.Rou
 		marker = out.NextMarker
 	}
 
-	results, err := p.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	var allRecords []model.Route53Record
-	for _, res := range results {
-		allRecords = append(allRecords, res...)
-	}
-
+	wg.Wait()
 	return allRecords, nil
 }

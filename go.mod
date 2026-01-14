@@ -17,9 +17,9 @@ require (
 	github.com/hashicorp/go-version v1.8.0
 	github.com/olekukonko/tablewriter v1.1.2
 	github.com/pterm/pterm v0.12.82
-	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

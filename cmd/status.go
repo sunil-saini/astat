@@ -57,7 +57,7 @@ Examples:
 		}
 
 		ttl := viper.GetDuration("ttl")
-		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm"}
+		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm", "elb"}
 
 		logger.Info("Overall Last Refresh: %v", meta.LastUpdated.Format(time.RFC1123))
 		logger.Info("TTL: %v", ttl)
@@ -87,7 +87,7 @@ Examples:
 
 		if isAnyStale && !cacheInitialized {
 			if viper.GetBool("auto-refresh") {
-				logger.Info("Auto-refresh is enabled. Stale services will be updated on next command.")
+				logger.Info("Auto-refresh is enabled. Stale services will be updated on next command")
 			}
 		}
 

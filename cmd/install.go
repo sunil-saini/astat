@@ -8,7 +8,9 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/sunil-saini/astat/internal/logger"
+	"gopkg.in/yaml.v3"
 )
 
 var installCmd = &cobra.Command{
@@ -121,7 +123,6 @@ func installConfig() {
 	configDir := filepath.Join(home, ".config", "astat")
 	configFile := filepath.Join(configDir, "config.yaml")
 
-	// Create directory if it doesn't exist
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			logger.Error("Failed to create config directory: %v", err)
@@ -129,12 +130,20 @@ func installConfig() {
 		}
 	}
 
-	// Create default config file if it doesn't exist
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		defaultConfig := []byte(`ttl: 24h
-auto-refresh: true
-output: table
-`)
+		settings := map[string]any{
+			"ttl":                 viper.GetDuration("ttl").String(),
+			"auto-refresh":        viper.GetBool("auto-refresh"),
+			"output":              viper.GetString("output"),
+			"route53-max-records": viper.GetInt("route53-max-records"),
+		}
+
+		defaultConfig, err := yaml.Marshal(settings)
+		if err != nil {
+			logger.Error("Failed to marshal default config: %v", err)
+			return
+		}
+
 		if err := os.WriteFile(configFile, defaultConfig, 0644); err != nil {
 			logger.Error("Failed to create default config file: %v", err)
 			return

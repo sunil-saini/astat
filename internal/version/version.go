@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"github.com/sunil-saini/astat/internal/logger"
 )
 
 var (
@@ -42,6 +43,7 @@ func GetLatestVersion() (string, string, error) {
 
 func IsUpgradeAvailable() (bool, string, string, error) {
 	if Version == "dev" {
+		logger.Warn("dev version, skipping upgrade check")
 		return false, "", "", nil
 	}
 

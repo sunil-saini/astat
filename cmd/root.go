@@ -96,6 +96,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("refresh", false, "refresh data from AWS")
 	rootCmd.PersistentFlags().Duration("ttl", 24*time.Hour, "cache TTL")
 	rootCmd.PersistentFlags().Bool("auto-refresh", true, "enable auto refresh if stale")
+	rootCmd.PersistentFlags().Int("route53-max-records", 1000, "ignore route53 hosted zones to fetch records with more than max records")
 
 	viper.BindPFlag("profile", rootCmd.PersistentFlags().Lookup("profile"))
 	viper.BindPFlag("region", rootCmd.PersistentFlags().Lookup("region"))
@@ -103,6 +104,12 @@ func init() {
 	viper.BindPFlag("refresh", rootCmd.PersistentFlags().Lookup("refresh"))
 	viper.BindPFlag("ttl", rootCmd.PersistentFlags().Lookup("ttl"))
 	viper.BindPFlag("auto-refresh", rootCmd.PersistentFlags().Lookup("auto-refresh"))
+	viper.BindPFlag("route53-max-records", rootCmd.PersistentFlags().Lookup("route53-max-records"))
+
+	viper.SetDefault("output", "table")
+	viper.SetDefault("ttl", 24*time.Hour)
+	viper.SetDefault("auto-refresh", true)
+	viper.SetDefault("route53-max-records", 1000)
 
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 
