@@ -31,7 +31,7 @@
 
 ## 🎯 Why astat?
 
-Tired of waiting for AWS CLI commands to complete? **astat** caches AWS resources stats locally, providing **instant access** to cloud infrastructure from the command line
+Tired of waiting for AWS CLI commands to complete? **astat** caches AWS resources stats locally for **instant access** and provides deep **infrastructure tracing** to visualize exactly how your domain requests flow through AWS
 
 ```bash
 # Traditional AWS CLI (slow, every time)
@@ -41,6 +41,9 @@ $ time aws <service> describe-* --query '...'
 # astat (instant, after first cache)
 $ time astat <service> list
 # ... 0.05 seconds ⚡
+
+# understand exactly how your domain requests flow through AWS
+$ astat domain trace myr53.hostedrecord.com/api
 ```
 
 **40-100x faster** for everyday queries!
@@ -81,6 +84,16 @@ $ time astat <service> list
 - **Auto-Refresh**: Keeps data fresh automatically
 - **Error Recovery**: Graceful handling of API failures
 - **Offline Mode**: Works with cached data when offline
+
+</td>
+</tr>
+<tr>
+<td width="100%" colspan="2">
+
+### 🔍 Infrastructure Tracing
+- **Deep Inspection**: Trace a domain or URI flow from DNS down to EC2 instances
+- **Visual Mapping**: Beautiful tree representation of your infrastructure
+- **Full Stack**: Support for Route53, CloudFront, ALB/NLB/CLB, and more
 
 </td>
 </tr>
@@ -149,11 +162,12 @@ go install github.com/sunil-saini/astat@latest
    # First run will trigger automatic cache refresh
    ```
 
-5. **Start querying** (instantly!):
+5. **Start using** (instantly!):
    ```bash
    astat ec2 list
    astat s3 list
    astat lambda list
+   astat domain trace myr53.hostedrecord.com/api
    ```
 
 ## 💡 Usage
@@ -184,6 +198,25 @@ astat route53 records
 astat ssm list
 astat ssm get <parameter-name>
 ```
+
+### 🔍 Infrastructure Tracing
+
+The flagship feature of **astat**! Trace exactly how a domain or request URI is routed through your AWS infrastructure
+
+```bash
+# Trace a domain flow
+astat domain trace api.example.com
+
+# Trace a specific URI
+astat domain trace api.example.com/v1/health
+```
+
+**What it traces:**
+- **External DNS**: Current IPs and CNAME chains
+- **Route53**: Zone matching, A/AAAA/CNAME/Alias records
+- **CloudFront**: Distribution aliases, origins, and cache behaviors
+- **ELB (v1 & v2)**: ALB/NLB/CLB listeners, rules, and conditions
+- **Targets**: Target Groups, health status, and EC2/Lambda targets
 
 ### Refresh Cache
 
@@ -286,7 +319,7 @@ go test ./...
 ## 🗺️ Roadmap
 
 - [ ] Multi Region support
-- [ ] Support for more AWS services (ECS, RDS, DynamoDB)
+- [ ] Support for more AWS services (RDS, SQS, DynamoDB etc)
 - [ ] Export to various formats (CSV, YAML)
 
 ## 🤝 Contributing

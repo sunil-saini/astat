@@ -18,8 +18,9 @@ import (
 )
 
 var upgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "Upgrade astat to the latest version",
+	Use:     "upgrade",
+	Short:   "Upgrade astat to the latest version",
+	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
 		pterm.DefaultHeader.Println("Checking for updates...")
 		fmt.Println()

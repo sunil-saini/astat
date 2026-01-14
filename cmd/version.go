@@ -8,8 +8,9 @@ import (
 )
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version information",
+	Use:     "version",
+	Short:   "Show version information",
+	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
 		pterm.DefaultBigText.WithLetters(
 			putils.LettersFromString("astat"),

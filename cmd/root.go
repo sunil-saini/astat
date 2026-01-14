@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sunil-saini/astat/cmd/cloudfront"
+	"github.com/sunil-saini/astat/cmd/domain"
 	"github.com/sunil-saini/astat/cmd/ec2"
 	"github.com/sunil-saini/astat/cmd/elb"
 	"github.com/sunil-saini/astat/cmd/lambda"
@@ -32,22 +33,22 @@ var rootCmd = &cobra.Command{
 	Short: "⚡ Lightning fast local AWS stats indexer",
 	Long: `astat - AWS Stats
 
-A blazing fast CLI tool that caches AWS resources details locally,
-providing instant access to cloud infrastructure
+A blazing fast CLI tool that caches AWS resources details locally and provides deep infrastructure tracing
 
 Instead of waiting for slow AWS API calls every time, astat maintains
-a local cache that's automatically refreshed, providing sub millisecond
-query times for AWS resources
+a local cache for instant querying and visualizes exactly how your
+domain requests flow through AWS (DNS -> CloudFront -> LB -> Target -> EC2)
 
 Example workflow:
-  $ astat status              # Check cache status
-  $ astat refresh             # Refresh all services
-  $ astat ec2 list            # List EC2 instances (instant!)
-  $ astat s3 list --refresh   # Force refresh S3 buckets
+  $ astat status                	# Check cache status
+  $ astat refresh               	# Refresh all services
+  $ astat domain trace <domain/uri> # Trace request flow through AWS
+  $ astat ec2 list              	# List EC2 instances (instant!)
+  $ astat s3 list --refresh     	# Force refresh S3 buckets
 
 Learn more: https://github.com/sunil-saini/astat`,
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Name() == "status" || cmd.Name() == "help" || cmd.Name() == "config" || cmd.Name() == "completion" || cmd.Name() == "install" || cmd.Name() == "refresh" || cmd.Name() == "version" || cmd.Name() == "upgrade" {
+		if isQuietCommand(cmd) {
 			return nil
 		}
 
@@ -62,7 +63,7 @@ Learn more: https://github.com/sunil-saini/astat`,
 				curr = curr.Parent()
 			}
 
-			if service != "" && service != "config" && service != "status" && service != "completion" && service != "install" && service != "refresh" && service != "version" && service != "upgrade" {
+			if service != "" && !isQuietCommand(curr) && service != "domain" {
 				if service == "route53" {
 					if cmd.Name() == "list" || cmd.Name() == "ls" {
 						refresh.AutoRefreshIfStale(cmd.Context(), "route53-zones")
@@ -76,13 +77,23 @@ Learn more: https://github.com/sunil-saini/astat`,
 		}
 		return nil
 	},
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
+
+func isQuietCommand(cmd *cobra.Command) bool {
+	return cmd.GroupID == "project" || cmd.Name() == "help"
 }
 
 func Execute() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cobra.CheckErr(rootCmd.ExecuteContext(ctx))
+	err := rootCmd.ExecuteContext(ctx)
+	if err != nil && err != context.Canceled {
+		logger.Error("%v", err)
+		os.Exit(1)
+	}
 	refresh.Wait(ctx)
 }
 
@@ -129,6 +140,7 @@ func init() {
 	rootCmd.AddCommand(cloudfront.CloudFrontCmd)
 	rootCmd.AddCommand(route53.Route53Cmd)
 	rootCmd.AddCommand(elb.ElbCmd)
+	rootCmd.AddCommand(domain.DomainCmd)
 
 	rootCmd.AddCommand(ConfigCmd)
 	rootCmd.AddCommand(completionCmd)
@@ -187,7 +199,7 @@ func usageTemplate() string {
 
 %s:
 {{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
-  {{.CommandPath | printf "%-14s"}} {{.Short}}{{end}}{{end}}
+  {{.CommandPath | printf "%%-14s"}} {{.Short}}{{end}}{{end}}
 {{- end}}
 
 {{- if .HasAvailableSubCommands}}

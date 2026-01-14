@@ -14,8 +14,9 @@ import (
 )
 
 var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show cache status and check for updates",
+	Use:     "status",
+	Short:   "Show cache status and check for updates",
+	GroupID: "project",
 	Long: `Display the status of all cached AWS services.
 
 Shows when each service was last refreshed and whether
