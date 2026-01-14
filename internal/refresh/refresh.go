@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -107,6 +108,9 @@ var serviceRegistry = map[string]func(context.Context, sdkaws.Config) (any, erro
 	"ssm": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
 		return aws.FetchSSMParameters(ctx, cfg)
 	},
+	"elb": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
+		return aws.FetchLoadBalancers(ctx, cfg)
+	},
 }
 
 func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error)) {
@@ -135,7 +139,6 @@ func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx con
 	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
 }
 
-// RefreshWithMulti refreshes a service using a shared multi-printer for concurrent execution
 func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error), multi *pterm.MultiPrinter) {
 	var meta cache.Meta
 	cache.Read(cache.Path(cache.Dir(), "meta"), &meta)
@@ -175,6 +178,7 @@ func refreshInternal(ctx context.Context, name string, tracker Tracker) {
 }
 
 var bgWG sync.WaitGroup
+var bgCount int32
 
 func Wait(ctx context.Context) {
 	done := make(chan struct{})
@@ -185,8 +189,18 @@ func Wait(ctx context.Context) {
 
 	select {
 	case <-done:
+		return
 	case <-ctx.Done():
-		logger.Warn("interrupting background refresh wait")
+		select {
+		case <-done:
+			return
+		default:
+		}
+
+		if atomic.LoadInt32(&bgCount) > 0 {
+			pterm.Println()
+			logger.Warn("interrupted: background refresh stopped")
+		}
 	}
 }
 
@@ -200,11 +214,7 @@ func AutoRefreshIfStale(ctx context.Context, service string) {
 	err := cache.Read(metaPath, &meta)
 	if err != nil {
 		logger.Warn("cache not initialized, triggering background refresh")
-		bgWG.Add(1)
-		go func() {
-			defer bgWG.Done()
-			refreshInternal(context.Background(), service, &silentTracker{})
-		}()
+		refreshInternal(ctx, service, &silentTracker{})
 		return
 	}
 
@@ -217,11 +227,11 @@ func AutoRefreshIfStale(ctx context.Context, service string) {
 	sMeta, ok := meta.Services[service]
 	if !ok || time.Since(sMeta.LastUpdated) > ttl {
 		logger.Info("service %s is stale, auto-refreshing...", service)
-		bgWG.Add(1)
-		go func() {
-			defer bgWG.Done()
-			refreshInternal(context.Background(), service, &silentTracker{})
-		}()
+		atomic.AddInt32(&bgCount, 1)
+		bgWG.Go(func() {
+			defer atomic.AddInt32(&bgCount, -1)
+			refreshInternal(ctx, service, &silentTracker{})
+		})
 	}
 }
 
