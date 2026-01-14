@@ -103,6 +103,17 @@ func init() {
 	viper.BindPFlag("ttl", rootCmd.PersistentFlags().Lookup("ttl"))
 	viper.BindPFlag("auto-refresh", rootCmd.PersistentFlags().Lookup("auto-refresh"))
 
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "resources",
+		Title: yellow("Resource Commands:"),
+	})
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "project",
+		Title: yellow("Project Commands:"),
+	})
+
 	rootCmd.AddCommand(ec2.EC2Cmd)
 	rootCmd.AddCommand(s3.S3Cmd)
 	rootCmd.AddCommand(ssm.SSMCmd)
@@ -127,13 +138,30 @@ func usageTemplate() string {
 	return fmt.Sprintf(`%s:
   {{.UseLine}}
 
-%s:
-  {{.Long}}
+{{- if .HasAvailableSubCommands}}
+{{- range $group := .Groups}}
+
+{{$group.Title}}
+{{- range $.Commands}}
+{{- if eq .GroupID $group.ID}}
+    %s  {{.Short}}
+{{- end}}
+{{- end}}
+{{- end}}
+
+{{- if .HasAvailableSubCommands}}
+{{- $ungrouped := false }}
+{{- range .Commands}}{{if and (not .GroupID) (or .IsAvailableCommand (eq .Name "help"))}}{{$ungrouped = true}}{{end}}{{end}}
+{{- if $ungrouped}}
 
 %s:
-{{- if .HasAvailableSubCommands}}
-  {{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-    %s  {{.Short}}{{end}}{{end}}
+{{- range .Commands}}
+{{- if and (not .GroupID) (or .IsAvailableCommand (eq .Name "help"))}}
+    %s  {{.Short}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- end}}
 {{- end}}
 
 %s:
@@ -157,8 +185,8 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.
 {{- end}}
 `,
 		yellow("Usage"),
-		yellow("Description"),
-		yellow("Available Commands"),
+		cyan("{{.Name | printf \"%-12s\"}}"),
+		yellow("Other Commands"),
 		cyan("{{.Name | printf \"%-12s\"}}"),
 		yellow("Flags"),
 		yellow("Global Flags"),

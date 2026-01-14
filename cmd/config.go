@@ -11,8 +11,9 @@ import (
 )
 
 var ConfigCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Manage astat configuration",
+	Use:     "config",
+	Short:   "Manage configuration",
+	GroupID: "project",
 }
 
 var configSetCmd = &cobra.Command{

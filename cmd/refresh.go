@@ -12,9 +12,10 @@ import (
 )
 
 var refreshCmd = &cobra.Command{
-	Use:   "refresh",
-	Short: "Refresh all services",
-	Long:  "Refresh cache for all AWS services",
+	Use:     "refresh",
+	Short:   "Refresh all services",
+	Long:    "Refresh cache for all AWS services",
+	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 

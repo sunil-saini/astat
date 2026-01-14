@@ -12,9 +12,10 @@ import (
 )
 
 var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Install astat",
-	Long:  "Install astat including binary placement and autocomplete.",
+	Use:     "install",
+	Short:   "Install astat",
+	Long:    "Install astat including binary placement and autocomplete",
+	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
 		pterm.DefaultHeader.WithFullWidth().Println("Welcome to astat!")
 		fmt.Println()
