@@ -44,6 +44,9 @@ var refreshCmd = &cobra.Command{
 			{"ssm", func(ctx context.Context, multi *pterm.MultiPrinter) {
 				refresh.RefreshWithMulti(ctx, "ssm", aws.FetchSSMParameters, multi)
 			}},
+			{"elb", func(ctx context.Context, multi *pterm.MultiPrinter) {
+				refresh.RefreshWithMulti(ctx, "elb", aws.FetchLoadBalancers, multi)
+			}},
 		}
 
 		multi := pterm.DefaultMultiPrinter

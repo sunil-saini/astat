@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/sunil-saini/astat/cmd/cloudfront"
 	"github.com/sunil-saini/astat/cmd/ec2"
+	"github.com/sunil-saini/astat/cmd/elb"
 	"github.com/sunil-saini/astat/cmd/lambda"
 	"github.com/sunil-saini/astat/cmd/route53"
 	"github.com/sunil-saini/astat/cmd/s3"
@@ -120,6 +121,8 @@ func init() {
 	rootCmd.AddCommand(lambda.LambdaCmd)
 	rootCmd.AddCommand(cloudfront.CloudFrontCmd)
 	rootCmd.AddCommand(route53.Route53Cmd)
+	rootCmd.AddCommand(elb.ElbCmd)
+
 	rootCmd.AddCommand(ConfigCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(installCmd)
