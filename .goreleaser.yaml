@@ -22,7 +22,7 @@ builds:
 before:
   hooks:
     - go mod tidy
-    - bash -c "mkdir -p completions && go run . completion bash > completions/astat.bash && go run . completion zsh > completions/astat.zsh && go run . completion fish > completions/astat.fish"
+    - bash -c "go build -o ./astat_local . && mkdir -p completions && ./astat_local completion bash > completions/astat.bash && ./astat_local completion zsh > completions/astat.zsh && ./astat_local completion fish > completions/astat.fish && rm ./astat_local"
 
 archives:
   - id: astat
