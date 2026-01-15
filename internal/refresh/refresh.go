@@ -127,10 +127,11 @@ func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx con
 	defer multi.Stop()
 
 	s, _ := pterm.DefaultSpinner.
-		WithSequence("⠃", "⠉", "⠘", "⠒").
+		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
 		WithStyle(pterm.NewStyle(pterm.FgCyan)).
 		WithMessageStyle(pterm.NewStyle(pterm.FgCyan)).
 		WithWriter(multi.NewWriter()).
+		WithRemoveWhenDone(true).
 		Start(fmt.Sprintf("%s pending...", resource))
 
 	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgGreen)})
@@ -149,10 +150,11 @@ func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ct
 	}
 
 	s, _ := pterm.DefaultSpinner.
-		WithSequence("⠃", "⠉", "⠘", "⠒").
+		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
 		WithStyle(pterm.NewStyle(pterm.FgCyan)).
 		WithMessageStyle(pterm.NewStyle(pterm.FgCyan)).
 		WithWriter(multi.NewWriter()).
+		WithRemoveWhenDone(true).
 		Start(fmt.Sprintf("%s pending...", resource))
 
 	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgGreen)})

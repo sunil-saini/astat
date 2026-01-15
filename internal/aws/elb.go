@@ -130,15 +130,21 @@ func FetchRules(ctx context.Context, cfg sdkaws.Config, listenerARN string) ([]m
 		var conditions []model.Condition
 		for _, c := range r.Conditions {
 			var values []string
-			if c.HostHeaderConfig != nil {
-				values = c.HostHeaderConfig.Values
-			}
-			if c.PathPatternConfig != nil {
-				values = c.PathPatternConfig.Values
-			}
 			field := ""
 			if c.Field != nil {
 				field = *c.Field
+			}
+			if c.HostHeaderConfig != nil {
+				values = c.HostHeaderConfig.Values
+				if field == "" {
+					field = "host-header"
+				}
+			}
+			if c.PathPatternConfig != nil {
+				values = c.PathPatternConfig.Values
+				if field == "" {
+					field = "path-pattern"
+				}
 			}
 			conditions = append(conditions, model.Condition{
 				Field:  field,

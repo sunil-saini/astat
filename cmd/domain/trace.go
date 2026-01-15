@@ -27,7 +27,10 @@ The trace includes:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		domain := args[0]
-		spinner, _ := pterm.DefaultSpinner.WithSequence("⠃", "⠉", "⠘", "⠒").Start(fmt.Sprintf("Tracing %s...", domain))
+		spinner, _ := pterm.DefaultSpinner.
+			WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
+			WithRemoveWhenDone(true).
+			Start(pterm.Cyan(fmt.Sprintf("Tracing %s...", domain)))
 
 		ctx := cmd.Context()
 		cfg, err := aws.LoadConfig(ctx)
@@ -42,7 +45,8 @@ The trace includes:
 			return err
 		}
 
-		spinner.Success("Trace complete")
+		spinner.Stop()
+		pterm.Success.Printf("Trace complete for %s\n", pterm.Bold.Sprint(domain))
 		pterm.Println()
 
 		if len(result.Hops) == 0 {
@@ -64,9 +68,31 @@ The trace includes:
 }
 
 func convertToPTermNode(node model.TraceNode) pterm.TreeNode {
-	text := fmt.Sprintf("[%s] %s", pterm.Cyan(node.Type), pterm.Bold.Sprint(node.Name))
-	if node.Value != "" {
-		text += fmt.Sprintf(" -> %s", pterm.Yellow(node.Value))
+	name := pterm.Bold.Sprint(node.Name)
+	val := node.Value
+	status := node.Status
+
+	// Apply coloring based on status
+	switch status {
+	case "healthy":
+		name = pterm.LightGreen(node.Name)
+		if val != "" {
+			val = pterm.LightGreen(val)
+		}
+	case "unhealthy":
+		name = pterm.LightRed(node.Name)
+		if val != "" {
+			val = pterm.LightRed(val)
+		}
+	default:
+		if val != "" {
+			val = pterm.Yellow(val)
+		}
+	}
+
+	text := fmt.Sprintf("[%s] %s", pterm.Cyan(node.Type), name)
+	if val != "" {
+		text += fmt.Sprintf(" -> %s", val)
 	}
 
 	pnode := pterm.TreeNode{

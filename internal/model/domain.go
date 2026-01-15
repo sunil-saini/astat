@@ -16,6 +16,7 @@ type TraceNode struct {
 	Name     string
 	ID       string
 	Value    string
+	Status   string
 	Children []TraceNode
 }
 

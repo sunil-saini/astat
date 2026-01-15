@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -244,20 +245,7 @@ func mapR53Record(zoneName string, r types.ResourceRecordSet) *model.Route53Reco
 }
 
 func matchPath(path, pattern string) bool {
-	if pattern == "*" || pattern == "/*" {
-		return true
-	}
-
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
-		return strings.HasPrefix(path, prefix)
-	}
-
-	if after, ok := strings.CutPrefix(pattern, "*"); ok {
-		suffix := after
-		return strings.HasSuffix(path, suffix)
-	}
-	return path == pattern
+	return matchPattern(path, pattern)
 }
 
 func traceLoadBalancer(ctx context.Context, cfg sdkaws.Config, lb model.LoadBalancer, host, path string) model.TraceNode {
@@ -319,10 +307,15 @@ func traceClassicLB(ctx context.Context, cfg sdkaws.Config, lbNode model.TraceNo
 			if h.Reason != "" && h.Reason != "N/A" {
 				val += " (" + h.Reason + ")"
 			}
+			status := "unhealthy"
+			if h.State == "InService" {
+				status = "healthy"
+			}
 			lNode.Children = append(lNode.Children, model.TraceNode{
-				Type:  "Instance",
-				Name:  name,
-				Value: val,
+				Type:   "Instance",
+				Name:   name,
+				Value:  val,
+				Status: status,
 			})
 		}
 		lbNode.Children = append(lbNode.Children, lNode)
@@ -438,6 +431,7 @@ func traceTargetGroup(ctx context.Context, cfg sdkaws.Config, tgARN string, ec2N
 	}
 
 	healths, _ := FetchTargetHealth(ctx, cfg, tgARN)
+	hasHealthy := false
 	for _, h := range healths {
 		name := ec2Names[h.InstanceID]
 		if name == "" {
@@ -447,25 +441,50 @@ func traceTargetGroup(ctx context.Context, cfg sdkaws.Config, tgARN string, ec2N
 		if h.Reason != "" && h.Reason != "N/A" {
 			val += " (" + h.Reason + ")"
 		}
+
+		status := "unhealthy"
+		if h.State == "healthy" {
+			status = "healthy"
+			hasHealthy = true
+		}
+
 		tgNode.Children = append(tgNode.Children, model.TraceNode{
-			Type:  "Target",
-			Name:  name,
-			Value: val,
+			Type:   "Target",
+			Name:   name,
+			Value:  val,
+			Status: status,
 		})
+	}
+
+	if hasHealthy {
+		tgNode.Status = "healthy"
+	} else {
+		tgNode.Status = "unhealthy"
 	}
 
 	return tgNode
 }
 
 func matchHost(host, pattern string) bool {
-	if pattern == "*" {
-		return true
+	return matchPattern(host, pattern)
+}
+
+func matchPattern(text, pattern string) bool {
+	rePattern := regexp.QuoteMeta(pattern)
+	rePattern = strings.ReplaceAll(rePattern, `\*`, `.*`)
+	rePattern = strings.ReplaceAll(rePattern, `\?`, `.`)
+	rePattern = "^" + rePattern + "$"
+
+	// Special case for ALB: if pattern ends with /*, it should also match the path without the trailing slash
+	if strings.HasSuffix(pattern, "/*") {
+		prefix := strings.TrimSuffix(pattern, "/*")
+		if text == prefix {
+			return true
+		}
 	}
-	if strings.HasPrefix(pattern, "*.") {
-		suffix := strings.TrimPrefix(pattern, "*")
-		return strings.HasSuffix(host, suffix)
-	}
-	return host == pattern
+
+	matched, _ := regexp.MatchString(rePattern, text)
+	return matched
 }
 
 func sortRules(rules []model.Rule) {
