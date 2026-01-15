@@ -128,14 +128,16 @@ func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx con
 
 	s, _ := pterm.DefaultSpinner.
 		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
-		WithStyle(pterm.NewStyle(pterm.FgCyan)).
-		WithMessageStyle(pterm.NewStyle(pterm.FgCyan)).
+		WithStyle(pterm.NewStyle(pterm.FgLightCyan)).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightCyan)).
 		WithWriter(multi.NewWriter()).
-		WithRemoveWhenDone(true).
-		Start(fmt.Sprintf("%s pending...", resource))
+		WithRemoveWhenDone(false).
+		Start(pterm.LightCyan(fmt.Sprintf("%s pending...", resource)))
 
-	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgGreen)})
-	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgRed)})
+	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgLightGreen)}).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightGreen))
+	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgLightRed)}).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightRed))
 
 	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
 }
@@ -151,14 +153,16 @@ func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ct
 
 	s, _ := pterm.DefaultSpinner.
 		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
-		WithStyle(pterm.NewStyle(pterm.FgCyan)).
-		WithMessageStyle(pterm.NewStyle(pterm.FgCyan)).
+		WithStyle(pterm.NewStyle(pterm.FgLightCyan)).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightCyan)).
 		WithWriter(multi.NewWriter()).
-		WithRemoveWhenDone(true).
-		Start(fmt.Sprintf("%s pending...", resource))
+		WithRemoveWhenDone(false).
+		Start(pterm.LightCyan(fmt.Sprintf("%s pending...", resource)))
 
-	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgGreen)})
-	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgRed)})
+	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgLightGreen)}).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightGreen))
+	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgLightRed)}).
+		WithMessageStyle(pterm.NewStyle(pterm.FgLightRed))
 
 	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
 }
