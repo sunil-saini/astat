@@ -111,6 +111,12 @@ var serviceRegistry = map[string]func(context.Context, sdkaws.Config) (any, erro
 	"elb": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
 		return aws.FetchLoadBalancers(ctx, cfg)
 	},
+	"rds-clusters": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
+		return aws.FetchRDSClusters(ctx, cfg)
+	},
+	"rds-instances": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
+		return aws.FetchRDSInstances(ctx, cfg)
+	},
 }
 
 func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error)) {

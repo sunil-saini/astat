@@ -17,6 +17,7 @@ import (
 	"github.com/sunil-saini/astat/cmd/ec2"
 	"github.com/sunil-saini/astat/cmd/elb"
 	"github.com/sunil-saini/astat/cmd/lambda"
+	"github.com/sunil-saini/astat/cmd/rds"
 	"github.com/sunil-saini/astat/cmd/route53"
 	"github.com/sunil-saini/astat/cmd/s3"
 	"github.com/sunil-saini/astat/cmd/ssm"
@@ -140,6 +141,7 @@ func init() {
 	rootCmd.AddCommand(cloudfront.CloudFrontCmd)
 	rootCmd.AddCommand(route53.Route53Cmd)
 	rootCmd.AddCommand(elb.ElbCmd)
+	rootCmd.AddCommand(rds.RDSCmd)
 	rootCmd.AddCommand(domain.DomainCmd)
 
 	rootCmd.AddCommand(ConfigCmd)

@@ -59,7 +59,7 @@ Examples:
 		}
 
 		ttl := viper.GetDuration("ttl")
-		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm", "elb"}
+		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm", "elb", "rds-clusters", "rds-instances"}
 
 		pterm.DefaultSection.Println("Cache Status")
 		pterm.Printf("%s: %s\n", pterm.LightMagenta("Last Refresh"), pterm.Cyan(meta.LastUpdated.Format(time.RFC1123)))

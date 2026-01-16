@@ -47,6 +47,12 @@ var refreshCmd = &cobra.Command{
 			{"elb", func(ctx context.Context, multi *pterm.MultiPrinter) {
 				refresh.RefreshWithMulti(ctx, "elb", aws.FetchLoadBalancers, multi)
 			}},
+			{"rds-clusters", func(ctx context.Context, multi *pterm.MultiPrinter) {
+				refresh.RefreshWithMulti(ctx, "rds-clusters", aws.FetchRDSClusters, multi)
+			}},
+			{"rds-instances", func(ctx context.Context, multi *pterm.MultiPrinter) {
+				refresh.RefreshWithMulti(ctx, "rds-instances", aws.FetchRDSInstances, multi)
+			}},
 		}
 
 		multi := pterm.DefaultMultiPrinter
