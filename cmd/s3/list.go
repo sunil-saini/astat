@@ -54,11 +54,12 @@ Examples:
 		for _, b := range buckets {
 			rows = append(rows, []string{
 				b.Name,
+				b.Region,
 				b.CreationDate,
 			})
 		}
 		return render.Print(render.TableData{
-			Headers: []string{"Name", "Creation Date"},
+			Headers: []string{"Name", "Region", "Creation Date"},
 			Rows:    rows,
 			JSON:    buckets,
 		})

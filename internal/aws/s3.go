@@ -12,17 +12,24 @@ import (
 func FetchS3Buckets(ctx context.Context, cfg sdkaws.Config) ([]model.S3Bucket, error) {
 	client := s3.NewFromConfig(cfg)
 
-	out, err := client.ListBuckets(ctx, &s3.ListBucketsInput{})
-	if err != nil {
-		return nil, err
-	}
+	paginator := s3.NewListBucketsPaginator(client, &s3.ListBucketsInput{
+		MaxBuckets: sdkaws.Int32(1000),
+	})
 
 	var buckets []model.S3Bucket
-	for _, b := range out.Buckets {
-		buckets = append(buckets, model.S3Bucket{
-			Name:         *b.Name,
-			CreationDate: b.CreationDate.Format(time.RFC3339),
-		})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, b := range page.Buckets {
+			buckets = append(buckets, model.S3Bucket{
+				Name:         *b.Name,
+				CreationDate: b.CreationDate.Format(time.RFC3339),
+				Region:       sdkaws.ToString(b.BucketRegion),
+			})
+		}
 	}
 
 	return buckets, nil
