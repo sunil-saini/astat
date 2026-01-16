@@ -1,6 +1,6 @@
 package model
 
 type SQSQueue struct {
-	Name string
-	Type string
+	Name string `header:"Name"`
+	Type string `header:"Type"`
 }

@@ -1,16 +1,16 @@
 package model
 
 type Route53HostedZone struct {
-	ID      string
-	Name    string
-	Type    string
-	Records string
+	ID      string `header:"ID"`
+	Name    string `header:"Name"`
+	Type    string `header:"Type"`
+	Records string `header:"Records"`
 }
 
 type Route53Record struct {
-	ZoneName string
-	Name     string
-	Type     string
-	TTL      string
-	Value    string
+	ZoneName string `header:"Zone"`
+	Name     string `header:"Name"`
+	Type     string `header:"Type"`
+	TTL      string `header:"TTL"`
+	Value    string `header:"Value"`
 }

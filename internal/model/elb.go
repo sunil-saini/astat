@@ -1,11 +1,11 @@
 package model
 
 type LoadBalancer struct {
-	Type      string
-	Name      string
-	Scheme    string
-	CreatedAt string
-	DNSName   string
+	Type      string `header:"Type"`
+	Name      string `header:"Name"`
+	Scheme    string `header:"Scheme"`
+	CreatedAt string `header:"Created At"`
+	DNSName   string `header:"DNS"`
 	ARN       string // For v2
 }
 
