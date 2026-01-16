@@ -40,13 +40,13 @@ $ time aws <service> describe-* --query '...'
 
 # astat (instant, after first cache)
 $ time astat <service> list
-# ... 0.05 seconds ⚡
+# ... 0.02 seconds ⚡
 
 # understand exactly how your domain requests flow through AWS
 $ astat domain trace myr53.hostedrecord.com/api
 ```
 
-**40-100x faster** for everyday queries!
+**100-250x faster** for everyday queries!
 
 ## ✨ Features
 
@@ -99,19 +99,35 @@ $ astat domain trace myr53.hostedrecord.com/api
 </tr>
 </table>
 
+## 🛠️ Supported Services
+
+astat provides native support for these AWS services with lightning-fast local caching:
+
+| Service | Category | Status |
+| :--- | :--- | :--- |
+| **EC2** | Compute | ✅ Supported |
+| **S3** | Storage | ✅ Supported |
+| **Lambda** | Serverless | ✅ Supported |
+| **Route53** | Networking & DNS | ✅ Supported |
+| **CloudFront** | Content Delivery | ✅ Supported |
+| **Load Balancers** | Networking (ALB/NLB/CLB) | ✅ Supported |
+| **RDS** | Databases (Clusters & Instances) | ✅ Supported |
+| **SQS** | Messaging | ✅ Supported |
+| **SSM** | Secrets | ✅ Supported |
+
 ## 📦 Installation
 
-
-### One Liner Script
-
-```bash
-curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/refs/heads/main/install.sh | sh
-```
 
 ### Homebrew
 
 ```bash
 brew install sunil-saini/tap/astat
+```
+
+### One Liner Script
+
+```bash
+curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/refs/heads/main/install.sh | sh
 ```
 
 ### Direct Download
@@ -145,7 +161,7 @@ go install github.com/sunil-saini/astat@latest
 
 1. **Install astat** (see above)
 
-2. **Set up shell completion and PATH**:
+2. **Set up shell completion and PATH (needed in case of Direct Download)**:
    ```bash
    astat install
    ```
@@ -271,6 +287,7 @@ astat stores configuration in `~/.config/astat/config.yaml` and cache in `~/.cac
 | `ttl` | `1h` | Cache time-to-live (e.g., `30m`, `2h`, `1d`) |
 | `auto-refresh` | `true` | Automatically refresh stale data  |
 | `cache_dir` | `~/.cache/astat` | Custom cache directory (optional) |
+| `route53-max-records` | `1000` | Fetch Records from a Zone if it have less than this records (optional) |
 
 ### Output Formats
 
@@ -319,8 +336,6 @@ go test ./...
 ## 🗺️ Roadmap
 
 - [ ] Multi Region support
-- [ ] Support for more AWS services (RDS, SQS, DynamoDB etc)
-- [ ] Export to various formats (CSV, YAML)
 
 ## 🤝 Contributing
 
