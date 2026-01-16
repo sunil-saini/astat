@@ -9,6 +9,7 @@ import (
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	elbv2Types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"github.com/sunil-saini/astat/internal/model"
 )
 
@@ -127,52 +128,58 @@ func FetchRules(ctx context.Context, cfg sdkaws.Config, listenerARN string) ([]m
 
 	var rules []model.Rule
 	for _, r := range out.Rules {
-		var conditions []model.Condition
-		for _, c := range r.Conditions {
-			var values []string
-			field := ""
-			if c.Field != nil {
-				field = *c.Field
-			}
-			if c.HostHeaderConfig != nil {
-				values = c.HostHeaderConfig.Values
-				if field == "" {
-					field = "host-header"
-				}
-			}
-			if c.PathPatternConfig != nil {
-				values = c.PathPatternConfig.Values
-				if field == "" {
-					field = "path-pattern"
-				}
-			}
-			conditions = append(conditions, model.Condition{
-				Field:  field,
-				Values: values,
-			})
-		}
-
-		var actions []model.Action
-		for _, a := range r.Actions {
-			tgArn := ""
-			if a.TargetGroupArn != nil {
-				tgArn = *a.TargetGroupArn
-			}
-			actions = append(actions, model.Action{
-				Type:           string(a.Type),
-				TargetGroupARN: tgArn,
-			})
-		}
-
 		rules = append(rules, model.Rule{
 			ARN:        *r.RuleArn,
 			Priority:   *r.Priority,
 			IsDefault:  *r.IsDefault,
-			Conditions: conditions,
-			Actions:    actions,
+			Conditions: mapRuleConditions(r.Conditions),
+			Actions:    mapRuleActions(r.Actions),
 		})
 	}
 	return rules, nil
+}
+
+func mapRuleConditions(conditions []elbv2Types.RuleCondition) []model.Condition {
+	var result []model.Condition
+	for _, c := range conditions {
+		field := ""
+		if c.Field != nil {
+			field = *c.Field
+		}
+		var values []string
+		if c.HostHeaderConfig != nil {
+			values = c.HostHeaderConfig.Values
+			if field == "" {
+				field = "host-header"
+			}
+		}
+		if c.PathPatternConfig != nil {
+			values = c.PathPatternConfig.Values
+			if field == "" {
+				field = "path-pattern"
+			}
+		}
+		result = append(result, model.Condition{
+			Field:  field,
+			Values: values,
+		})
+	}
+	return result
+}
+
+func mapRuleActions(actions []elbv2Types.Action) []model.Action {
+	var result []model.Action
+	for _, a := range actions {
+		tgArn := ""
+		if a.TargetGroupArn != nil {
+			tgArn = *a.TargetGroupArn
+		}
+		result = append(result, model.Action{
+			Type:           string(a.Type),
+			TargetGroupARN: tgArn,
+		})
+	}
+	return result
 }
 
 func FetchTargetHealth(ctx context.Context, cfg sdkaws.Config, tgARN string) ([]model.InstanceHealth, error) {

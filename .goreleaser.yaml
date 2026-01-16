@@ -18,6 +18,9 @@ builds:
       - -X github.com/sunil-saini/astat/internal/version.Version={{.Version}}
       - -X github.com/sunil-saini/astat/internal/version.Commit={{.Commit}}
       - -X github.com/sunil-saini/astat/internal/version.Date={{.Date}}
+    flags:
+      - -trimpath
+    mod_timestamp: "{{ .CommitTimestamp }}"
 
 before:
   hooks:

@@ -24,7 +24,7 @@ echo "🚀 Installing $BINARY_NAME for $OS/$ARCH..."
 # Get latest release tag
 LATEST_TAG=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
-if [ -z "$LATEST_TAG" ]; then
+if [[ -z "$LATEST_TAG" ]]; then
     echo "❌ Could not find latest release tag."
     exit 1
 fi
@@ -43,7 +43,7 @@ chmod +x "$BINARY_NAME"
 DEST="/usr/local/bin/$BINARY_NAME"
 
 echo "Installing to $DEST..."
-if [ -w "/usr/local/bin" ]; then
+if [[ -w "/usr/local/bin" ]]; then
     mv "$BINARY_NAME" "$DEST"
 else
     sudo mv "$BINARY_NAME" "$DEST"

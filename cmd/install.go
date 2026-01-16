@@ -92,7 +92,7 @@ func installBinary() {
 	logger.Info("Attempting to install astat to %s...", target)
 
 	// Check if we have write access to /usr/local/bin
-	if err := os.WriteFile(target+"_test", []byte("test"), 0644); err != nil {
+	if err = os.WriteFile(target+"_test", []byte("test"), 0644); err != nil {
 		logger.Warn("Permission denied for /usr/local/bin. You might need to run: sudo cp %s %s", execPath, target)
 		return
 	}

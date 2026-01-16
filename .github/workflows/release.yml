@@ -22,11 +22,12 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
+          cache-dependency-path: go.sum
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean --parallelism 4
+          args: release --clean --parallelism 8
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}

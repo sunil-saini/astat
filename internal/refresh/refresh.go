@@ -3,6 +3,7 @@ package refresh
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -88,32 +89,11 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 }
 
 func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error)) {
-	var meta cache.Meta
-	cache.Read(cache.Path(cache.Dir(), "meta"), &meta)
-
-	if sMeta, ok := meta.Services[resource]; ok && sMeta.Refreshing && IsProcessAlive(sMeta.BusyPID) {
-		logger.Info("cache refresh for %s is already ongoing in another terminal (PID: %d)", resource, sMeta.BusyPID)
-		return
-	}
-
 	multi := pterm.DefaultMultiPrinter
 	multi.Start()
 	defer multi.Stop()
 
-	s, _ := pterm.DefaultSpinner.
-		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
-		WithStyle(pterm.NewStyle(pterm.FgLightCyan)).
-		WithMessageStyle(pterm.NewStyle(pterm.FgLightCyan)).
-		WithWriter(multi.NewWriter()).
-		WithRemoveWhenDone(false).
-		Start(pterm.LightCyan(fmt.Sprintf("%s pending...", resource)))
-
-	s.SuccessPrinter = pterm.Success.WithPrefix(pterm.Prefix{Text: " ✓ ", Style: pterm.NewStyle(pterm.FgLightGreen)}).
-		WithMessageStyle(pterm.NewStyle(pterm.FgLightGreen))
-	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgLightRed)}).
-		WithMessageStyle(pterm.NewStyle(pterm.FgLightRed))
-
-	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
+	RefreshWithMulti(ctx, resource, fetch, &multi)
 }
 
 func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error), multi *pterm.MultiPrinter) {
@@ -125,11 +105,16 @@ func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ct
 		return
 	}
 
+	s := createSpinner(multi.NewWriter(), resource)
+	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
+}
+
+func createSpinner(writer io.Writer, resource string) *pterm.SpinnerPrinter {
 	s, _ := pterm.DefaultSpinner.
 		WithSequence("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏").
 		WithStyle(pterm.NewStyle(pterm.FgLightCyan)).
 		WithMessageStyle(pterm.NewStyle(pterm.FgLightCyan)).
-		WithWriter(multi.NewWriter()).
+		WithWriter(writer).
 		WithRemoveWhenDone(false).
 		Start(pterm.LightCyan(fmt.Sprintf("%s pending...", resource)))
 
@@ -138,7 +123,7 @@ func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ct
 	s.FailPrinter = pterm.Error.WithPrefix(pterm.Prefix{Text: " ✗ ", Style: pterm.NewStyle(pterm.FgLightRed)}).
 		WithMessageStyle(pterm.NewStyle(pterm.FgLightRed))
 
-	Refresh(ctx, resource, fetch, &ptermTracker{spinner: s})
+	return s
 }
 
 func refreshInternal(ctx context.Context, name string, tracker Tracker) {
@@ -224,9 +209,13 @@ func AutoRefreshIfStale(ctx context.Context, service string) {
 
 type silentTracker struct{}
 
-func (s *silentTracker) Update(msg string)  {}
-func (s *silentTracker) Success(msg string) {}
-func (s *silentTracker) Error(msg string)   { logger.Error("%s", msg) }
+func (s *silentTracker) Update(msg string) {
+	_ = msg
+}
+func (s *silentTracker) Success(msg string) {
+	_ = msg
+}
+func (s *silentTracker) Error(msg string) { logger.Error("%s", msg) }
 
 func IsProcessAlive(pid int) bool {
 	if pid <= 0 {

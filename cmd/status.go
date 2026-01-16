@@ -14,6 +14,8 @@ import (
 	"github.com/sunil-saini/astat/internal/version"
 )
 
+const tableRowSeparator = "───────────────"
+
 var statusCmd = &cobra.Command{
 	Use:     "status",
 	Short:   "Show cache status and check for updates",
@@ -66,7 +68,7 @@ Examples:
 
 		data := pterm.TableData{
 			{"Service", "Status", "Age"},
-			{"───────────────", "───────────────", "───────────────"},
+			{tableRowSeparator, tableRowSeparator, tableRowSeparator},
 		}
 
 		isAnyStale := false

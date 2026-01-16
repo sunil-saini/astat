@@ -30,6 +30,11 @@ var (
 	cfgFile string
 )
 
+const (
+	autoRefreshFlag   = "auto-refresh"
+	r53MaxRecordsFlag = "route53-max-records"
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "astat",
 	Short: "⚡ Lightning fast local AWS stats indexer",
@@ -54,7 +59,7 @@ Learn more: https://github.com/sunil-saini/astat`,
 			return nil
 		}
 
-		if viper.GetBool("auto-refresh") {
+		if viper.GetBool(autoRefreshFlag) {
 			service := ""
 			curr := cmd
 			for curr.HasParent() {
@@ -115,21 +120,21 @@ func init() {
 	rootCmd.PersistentFlags().String("output", "table", "output format: table|json")
 	rootCmd.PersistentFlags().Bool("refresh", false, "refresh data from AWS")
 	rootCmd.PersistentFlags().Duration("ttl", 24*time.Hour, "cache TTL")
-	rootCmd.PersistentFlags().Bool("auto-refresh", true, "enable auto refresh if stale")
-	rootCmd.PersistentFlags().Int("route53-max-records", 1000, "ignore route53 hosted zones to fetch records with more than max records")
+	rootCmd.PersistentFlags().Bool(autoRefreshFlag, true, "enable auto refresh if stale")
+	rootCmd.PersistentFlags().Int(r53MaxRecordsFlag, 1000, "ignore route53 hosted zones to fetch records with more than max records")
 
 	viper.BindPFlag("profile", rootCmd.PersistentFlags().Lookup("profile"))
 	viper.BindPFlag("region", rootCmd.PersistentFlags().Lookup("region"))
 	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 	viper.BindPFlag("refresh", rootCmd.PersistentFlags().Lookup("refresh"))
 	viper.BindPFlag("ttl", rootCmd.PersistentFlags().Lookup("ttl"))
-	viper.BindPFlag("auto-refresh", rootCmd.PersistentFlags().Lookup("auto-refresh"))
-	viper.BindPFlag("route53-max-records", rootCmd.PersistentFlags().Lookup("route53-max-records"))
+	viper.BindPFlag(autoRefreshFlag, rootCmd.PersistentFlags().Lookup(autoRefreshFlag))
+	viper.BindPFlag(r53MaxRecordsFlag, rootCmd.PersistentFlags().Lookup(r53MaxRecordsFlag))
 
 	viper.SetDefault("output", "table")
 	viper.SetDefault("ttl", 24*time.Hour)
-	viper.SetDefault("auto-refresh", true)
-	viper.SetDefault("route53-max-records", 1000)
+	viper.SetDefault(autoRefreshFlag, true)
+	viper.SetDefault(r53MaxRecordsFlag, 1000)
 
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 

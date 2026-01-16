@@ -142,7 +142,11 @@ func extractFromTarGz(archivePath string) (string, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	return extractBinaryFromStream(gzr)
+}
+
+func extractBinaryFromStream(r io.Reader) (string, error) {
+	tr := tar.NewReader(r)
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -154,30 +158,34 @@ func extractFromTarGz(archivePath string) (string, error) {
 
 		// Look for the astat binary
 		if filepath.Base(header.Name) == "astat" {
-			tmpBinary, err := os.CreateTemp("", "astat-new-*")
-			if err != nil {
-				return "", err
-			}
-			tmpPath := tmpBinary.Name()
-
-			if _, err := io.Copy(tmpBinary, tr); err != nil {
-				tmpBinary.Close()
-				os.Remove(tmpPath)
-				return "", err
-			}
-			tmpBinary.Close()
-
-			// Make executable
-			if err := os.Chmod(tmpPath, 0755); err != nil {
-				os.Remove(tmpPath)
-				return "", err
-			}
-
-			return tmpPath, nil
+			return saveBinary(tr)
 		}
 	}
 
 	return "", fmt.Errorf("binary not found in archive")
+}
+
+func saveBinary(r io.Reader) (string, error) {
+	tmpBinary, err := os.CreateTemp("", "astat-new-*")
+	if err != nil {
+		return "", err
+	}
+	tmpPath := tmpBinary.Name()
+
+	if _, err := io.Copy(tmpBinary, r); err != nil {
+		tmpBinary.Close()
+		os.Remove(tmpPath)
+		return "", err
+	}
+	tmpBinary.Close()
+
+	// Make executable
+	if err := os.Chmod(tmpPath, 0755); err != nil {
+		os.Remove(tmpPath)
+		return "", err
+	}
+
+	return tmpPath, nil
 }
 
 func replaceBinary(newBinary, targetPath string) error {

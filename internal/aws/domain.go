@@ -66,7 +66,7 @@ func TraceDomain(ctx context.Context, cfg sdkaws.Config, domain string) (*model.
 	target := strings.TrimSuffix(foundRecord.Value, ".")
 
 	// 2. Trace CloudFront
-	if node, matched := traceCloudFront(ctx, cfg, target, domain, path); matched {
+	if node, matched := traceCloudFront(ctx, cfg, target, path); matched {
 		r53Node.Children = append(r53Node.Children, *node)
 		result.Hops = append(result.Hops, r53Node)
 		return result, nil
@@ -109,82 +109,71 @@ func resolveRoute53Record(ctx context.Context, cfg sdkaws.Config, host string) *
 	// 2. If not found, check Zones Cache and fetch only for that zone
 	var zones []model.Route53HostedZone
 	if ok, _ := cache.Load(cache.Path(cache.Dir(), "route53-zones"), &zones); ok {
-		var matchedZone *model.Route53HostedZone
-		for _, z := range zones {
-			zoneName := strings.TrimSuffix(z.Name, ".")
-			if strings.HasSuffix(host, zoneName) {
-				if matchedZone == nil || len(z.Name) > len(matchedZone.Name) {
-					matchedZone = &z
-				}
-			}
-		}
-
+		matchedZone := findMatchingZone(host, zones)
 		if matchedZone != nil {
-			zoneID := strings.TrimPrefix(matchedZone.ID, "/hostedzone/")
-			client := route53.NewFromConfig(cfg)
-
-			var startName *string
-			var startType types.RRType
-
-			for {
-				out, err := client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
-					HostedZoneId:    &zoneID,
-					StartRecordName: startName,
-					StartRecordType: startType,
-				})
-				if err != nil {
-					break
-				}
-
-				for _, r := range out.ResourceRecordSets {
-					if strings.TrimSuffix(*r.Name, ".") == host {
-						return mapR53Record(matchedZone.Name, r)
-					}
-				}
-
-				if !out.IsTruncated {
-					break
-				}
-				startName = out.NextRecordName
-				startType = out.NextRecordType
-			}
+			return fetchRecordInZone(ctx, cfg, host, matchedZone)
 		}
 	}
 	return nil
 }
 
-func traceCloudFront(ctx context.Context, cfg sdkaws.Config, target, host, path string) (*model.TraceNode, bool) {
-	cfDists, _ := FetchCloudFront(ctx, cfg)
-	for _, d := range cfDists {
-		distDomain := strings.TrimSuffix(d.Domain, ".")
-		distAliases := strings.Split(d.Aliases, ",")
+func findMatchingZone(host string, zones []model.Route53HostedZone) *model.Route53HostedZone {
+	var matchedZone *model.Route53HostedZone
+	for _, z := range zones {
+		zoneName := strings.TrimSuffix(z.Name, ".")
+		if strings.HasSuffix(host, zoneName) {
+			if matchedZone == nil || len(z.Name) > len(matchedZone.Name) {
+				zCopy := z
+				matchedZone = &zCopy
+			}
+		}
+	}
+	return matchedZone
+}
 
-		isMatch := (strings.EqualFold(distDomain, target))
-		if !isMatch {
-			for _, a := range distAliases {
-				if matchHost(target, a) {
-					isMatch = true
-					break
-				}
+func fetchRecordInZone(ctx context.Context, cfg sdkaws.Config, host string, zone *model.Route53HostedZone) *model.Route53Record {
+	zoneID := strings.TrimPrefix(zone.ID, "/hostedzone/")
+	client := route53.NewFromConfig(cfg)
+
+	var startName *string
+	var startType types.RRType
+
+	for {
+		out, err := client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
+			HostedZoneId:    &zoneID,
+			StartRecordName: startName,
+			StartRecordType: startType,
+		})
+		if err != nil {
+			break
+		}
+
+		for _, r := range out.ResourceRecordSets {
+			if strings.TrimSuffix(*r.Name, ".") == host {
+				rec := mapRoute53RecordSet(zone.Name, r)
+				return &rec
 			}
 		}
 
-		if isMatch {
+		if !out.IsTruncated {
+			break
+		}
+		startName = out.NextRecordName
+		startType = out.NextRecordType
+	}
+	return nil
+}
+
+func traceCloudFront(ctx context.Context, cfg sdkaws.Config, target, path string) (*model.TraceNode, bool) {
+	cfDists, _ := FetchCloudFront(ctx, cfg)
+	for _, d := range cfDists {
+		if isCloudFrontDistMatch(target, d) {
 			cfNode := model.TraceNode{
 				Type: model.NodeCloudFront,
 				Name: fmt.Sprintf("Distribution (%s)", d.ID),
 			}
 
-			originDomain := d.DefaultOrigin
-			matchedPattern := "Default (*)"
-
-			for _, b := range d.Behaviors {
-				if matchPath(path, b.PathPattern) {
-					originDomain = d.Origins[b.TargetOriginID]
-					matchedPattern = b.PathPattern
-					break
-				}
-			}
+			originDomain, matchedPattern := getCloudFrontOrigin(path, d)
 
 			cfNode.Children = append(cfNode.Children, model.TraceNode{
 				Type:  model.NodeOrigin,
@@ -195,6 +184,35 @@ func traceCloudFront(ctx context.Context, cfg sdkaws.Config, target, host, path 
 		}
 	}
 	return nil, false
+}
+
+func isCloudFrontDistMatch(target string, d model.CloudFrontDistribution) bool {
+	distDomain := strings.TrimSuffix(d.Domain, ".")
+	if strings.EqualFold(distDomain, target) {
+		return true
+	}
+
+	distAliases := strings.Split(d.Aliases, ",")
+	for _, a := range distAliases {
+		if matchHost(target, a) {
+			return true
+		}
+	}
+	return false
+}
+
+func getCloudFrontOrigin(path string, d model.CloudFrontDistribution) (string, string) {
+	originDomain := d.DefaultOrigin
+	matchedPattern := "Default (*)"
+
+	for _, b := range d.Behaviors {
+		if matchPath(path, b.PathPattern) {
+			originDomain = d.Origins[b.TargetOriginID]
+			matchedPattern = b.PathPattern
+			break
+		}
+	}
+	return originDomain, matchedPattern
 }
 
 func traceExternalDNS(ctx context.Context, domain string) (string, error) {
@@ -216,32 +234,6 @@ func traceExternalDNS(ctx context.Context, domain string) (string, error) {
 	}
 
 	return result, nil
-}
-
-func mapR53Record(zoneName string, r types.ResourceRecordSet) *model.Route53Record {
-	ttl := ""
-	recordType := string(r.Type)
-	if r.AliasTarget != nil {
-		ttl = "ALIAS"
-		recordType = "Alias+" + recordType
-	} else if r.TTL != nil {
-		ttl = fmt.Sprintf("%d", *r.TTL)
-	}
-
-	value := ""
-	if r.AliasTarget != nil {
-		value = *r.AliasTarget.DNSName
-	} else if len(r.ResourceRecords) > 0 {
-		value = *r.ResourceRecords[0].Value
-	}
-
-	return &model.Route53Record{
-		ZoneName: zoneName,
-		Name:     *r.Name,
-		Type:     recordType,
-		TTL:      ttl,
-		Value:    value,
-	}
 }
 
 func matchPath(path, pattern string) bool {
@@ -351,41 +343,10 @@ func traceApplicationLB(ctx context.Context, cfg sdkaws.Config, lbNode model.Tra
 
 		rules, _ := FetchRules(ctx, cfg, l.ARN)
 		sortRules(rules)
-		var matchedRule *model.Rule
-		var matchFound bool
-		for _, r := range rules {
-			if r.IsDefault {
-				continue
-			}
-			match := true
-			for _, cond := range r.Conditions {
-				condMatch := false
-				for _, val := range cond.Values {
-					if cond.Field == "host-header" {
-						if matchHost(host, val) {
-							condMatch = true
-							break
-						}
-					} else if cond.Field == "path-pattern" {
-						if matchPath(path, val) {
-							condMatch = true
-							break
-						}
-					}
-				}
-				if !condMatch {
-					match = false
-					break
-				}
-			}
-			if match {
-				matchedRule = &r
-				matchFound = true
-				break
-			}
-		}
 
-		if !matchFound {
+		if matchedRule := findMatchedALBRule(rules, host, path); matchedRule != nil {
+			listenerNode.Children = append(listenerNode.Children, traceRuleToNode(ctx, cfg, *matchedRule, ec2Names))
+		} else {
 			for _, action := range l.DefaultActions {
 				if action.TargetGroupARN != "" {
 					tgNode := traceTargetGroup(ctx, cfg, action.TargetGroupARN, ec2Names)
@@ -393,26 +354,56 @@ func traceApplicationLB(ctx context.Context, cfg sdkaws.Config, lbNode model.Tra
 					listenerNode.Children = append(listenerNode.Children, tgNode)
 				}
 			}
-		} else {
-			condStr := ""
-			for _, c := range matchedRule.Conditions {
-				condStr += fmt.Sprintf("[%s:%s] ", c.Field, strings.Join(c.Values, ","))
-			}
-			ruleNode := model.TraceNode{
-				Type: "Rule",
-				Name: fmt.Sprintf("Priority %s: %s", matchedRule.Priority, condStr),
-			}
-			for _, action := range matchedRule.Actions {
-				if action.TargetGroupARN != "" {
-					tgNode := traceTargetGroup(ctx, cfg, action.TargetGroupARN, ec2Names)
-					ruleNode.Children = append(ruleNode.Children, tgNode)
-				}
-			}
-			listenerNode.Children = append(listenerNode.Children, ruleNode)
 		}
 		lbNode.Children = append(lbNode.Children, listenerNode)
 	}
 	return lbNode
+}
+
+func findMatchedALBRule(rules []model.Rule, host, path string) *model.Rule {
+	for _, r := range rules {
+		if !r.IsDefault && matchRuleConditions(r.Conditions, host, path) {
+			return &r
+		}
+	}
+	return nil
+}
+
+func matchRuleConditions(conditions []model.Condition, host, path string) bool {
+	for _, cond := range conditions {
+		condMatch := false
+		for _, val := range cond.Values {
+			if (cond.Field == "host-header" && matchHost(host, val)) ||
+				(cond.Field == "path-pattern" && matchPath(path, val)) {
+				condMatch = true
+				break
+			}
+		}
+		if !condMatch {
+			return false
+		}
+	}
+	return true
+}
+
+func traceRuleToNode(ctx context.Context, cfg sdkaws.Config, rule model.Rule, ec2Names map[string]string) model.TraceNode {
+	condStrings := make([]string, 0, len(rule.Conditions))
+	for _, c := range rule.Conditions {
+		condStrings = append(condStrings, fmt.Sprintf("[%s:%s]", c.Field, strings.Join(c.Values, ",")))
+	}
+
+	ruleNode := model.TraceNode{
+		Type: "Rule",
+		Name: fmt.Sprintf("Priority %s: %s", rule.Priority, strings.Join(condStrings, " ")),
+	}
+
+	for _, action := range rule.Actions {
+		if action.TargetGroupARN != "" {
+			tgNode := traceTargetGroup(ctx, cfg, action.TargetGroupARN, ec2Names)
+			ruleNode.Children = append(ruleNode.Children, tgNode)
+		}
+	}
+	return ruleNode
 }
 
 func traceTargetGroup(ctx context.Context, cfg sdkaws.Config, tgARN string, ec2Names map[string]string) model.TraceNode {

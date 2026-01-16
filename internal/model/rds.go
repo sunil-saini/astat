@@ -19,7 +19,7 @@ type RDSInstance struct {
 	Engine             string `header:"Engine"`
 	EngineVersion      string `header:"Engine Version"`
 	DBInstanceStatus   string `header:"Status"`
-	Endpoint           string `header:"Endpoint"`
+	Endpoint           string `header:""`
 	InstanceClass      string `header:"Class"`
 	AvailabilityZone   string `header:"AZ"`
 }

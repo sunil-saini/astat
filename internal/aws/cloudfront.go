@@ -6,6 +6,7 @@ import (
 
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
+	cfTypes "github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/sunil-saini/astat/internal/model"
 )
 
@@ -22,54 +23,57 @@ func FetchCloudFront(ctx context.Context, cfg sdkaws.Config) ([]model.CloudFront
 			return nil, err
 		}
 
+		if out.DistributionList != nil {
+			for _, d := range out.DistributionList.Items {
+				dists = append(dists, mapCloudFrontDistribution(d))
+			}
+		}
+
 		if out.DistributionList == nil || out.DistributionList.IsTruncated == nil || !*out.DistributionList.IsTruncated {
 			break
 		}
-
-		for _, d := range out.DistributionList.Items {
-			origins := make(map[string]string)
-			if d.Origins != nil {
-				for _, o := range d.Origins.Items {
-					origins[*o.Id] = *o.DomainName
-				}
-			}
-
-			var behaviors []model.CloudFrontBehavior
-			if d.CacheBehaviors != nil {
-				for _, b := range d.CacheBehaviors.Items {
-					behaviors = append(behaviors, model.CloudFrontBehavior{
-						PathPattern:    *b.PathPattern,
-						TargetOriginID: *b.TargetOriginId,
-					})
-				}
-			}
-
-			defaultOrigin := ""
-			if d.DefaultCacheBehavior != nil {
-				defaultOrigin = origins[*d.DefaultCacheBehavior.TargetOriginId]
-			}
-
-			aliases := ""
-			if d.Aliases != nil && len(d.Aliases.Items) > 0 {
-				aliases = strings.Join(d.Aliases.Items, ",")
-			}
-
-			dists = append(dists, model.CloudFrontDistribution{
-				ID:            *d.Id,
-				Domain:        *d.DomainName,
-				Status:        *d.Status,
-				LastUpdated:   d.LastModifiedTime.Format("2006-01-02 15:04:05"),
-				Aliases:       aliases,
-				Origins:       origins,
-				DefaultOrigin: defaultOrigin,
-				Behaviors:     behaviors,
-			})
-		}
-
-		if out.DistributionList.IsTruncated != nil && *out.DistributionList.IsTruncated {
-			marker = out.DistributionList.NextMarker
-		}
+		marker = out.DistributionList.NextMarker
 	}
 
 	return dists, nil
+}
+
+func mapCloudFrontDistribution(d cfTypes.DistributionSummary) model.CloudFrontDistribution {
+	origins := make(map[string]string)
+	if d.Origins != nil {
+		for _, o := range d.Origins.Items {
+			origins[*o.Id] = *o.DomainName
+		}
+	}
+
+	var behaviors []model.CloudFrontBehavior
+	if d.CacheBehaviors != nil {
+		for _, b := range d.CacheBehaviors.Items {
+			behaviors = append(behaviors, model.CloudFrontBehavior{
+				PathPattern:    *b.PathPattern,
+				TargetOriginID: *b.TargetOriginId,
+			})
+		}
+	}
+
+	defaultOrigin := ""
+	if d.DefaultCacheBehavior != nil {
+		defaultOrigin = origins[*d.DefaultCacheBehavior.TargetOriginId]
+	}
+
+	aliases := ""
+	if d.Aliases != nil && len(d.Aliases.Items) > 0 {
+		aliases = strings.Join(d.Aliases.Items, ",")
+	}
+
+	return model.CloudFrontDistribution{
+		ID:            *d.Id,
+		Domain:        *d.DomainName,
+		Status:        *d.Status,
+		LastUpdated:   d.LastModifiedTime.Format("2006-01-02 15:04:05"),
+		Aliases:       aliases,
+		Origins:       origins,
+		DefaultOrigin: defaultOrigin,
+		Behaviors:     behaviors,
+	}
 }
