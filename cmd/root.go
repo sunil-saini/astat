@@ -65,13 +65,20 @@ Learn more: https://github.com/sunil-saini/astat`,
 			}
 
 			if service != "" && !isQuietCommand(curr) && service != "domain" {
-				if service == "route53" {
+				switch service {
+				case "route53":
 					if cmd.Name() == "list" || cmd.Name() == "ls" {
 						refresh.AutoRefreshIfStale(cmd.Context(), "route53-zones")
 					} else if cmd.Name() == "records" {
 						refresh.AutoRefreshIfStale(cmd.Context(), "route53-records")
 					}
-				} else {
+				case "rds":
+					if cmd.Name() == "list" || cmd.Name() == "ls" {
+						refresh.AutoRefreshIfStale(cmd.Context(), "rds-clusters")
+					} else if cmd.Name() == "instances" {
+						refresh.AutoRefreshIfStale(cmd.Context(), "rds-instances")
+					}
+				default:
 					refresh.AutoRefreshIfStale(cmd.Context(), service)
 				}
 			}
