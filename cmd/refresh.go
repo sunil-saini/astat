@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/aws"
+	"github.com/sunil-saini/astat/internal/model"
 	"github.com/sunil-saini/astat/internal/refresh"
+	"github.com/sunil-saini/astat/internal/registry"
 )
 
 var refreshCmd = &cobra.Command{
@@ -19,42 +21,6 @@ var refreshCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 
-		services := []struct {
-			name string
-			fn   func(context.Context, *pterm.MultiPrinter)
-		}{
-			{"ec2", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "ec2", aws.FetchEC2Instances, multi)
-			}},
-			{"s3", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "s3", aws.FetchS3Buckets, multi)
-			}},
-			{"lambda", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "lambda", aws.FetchLambdaFunctions, multi)
-			}},
-			{"cloudfront", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "cloudfront", aws.FetchCloudFront, multi)
-			}},
-			{"route53-zones", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "route53-zones", aws.FetchHostedZones, multi)
-			}},
-			{"route53-records", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "route53-records", aws.FetchAllRoute53Records, multi)
-			}},
-			{"ssm", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "ssm", aws.FetchSSMParameters, multi)
-			}},
-			{"elb", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "elb", aws.FetchLoadBalancers, multi)
-			}},
-			{"rds-clusters", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "rds-clusters", aws.FetchRDSClusters, multi)
-			}},
-			{"rds-instances", func(ctx context.Context, multi *pterm.MultiPrinter) {
-				refresh.RefreshWithMulti(ctx, "rds-instances", aws.FetchRDSInstances, multi)
-			}},
-		}
-
 		multi := pterm.DefaultMultiPrinter
 		multi.Start()
 		defer multi.Stop()
@@ -64,14 +30,17 @@ var refreshCmd = &cobra.Command{
 		fmt.Println()
 
 		var wg sync.WaitGroup
-		for _, svc := range services {
+		for _, svc := range registry.Registry {
 			wg.Add(1)
-			go func(s struct {
-				name string
-				fn   func(context.Context, *pterm.MultiPrinter)
-			}) {
+			go func(s registry.Service) {
 				defer wg.Done()
-				s.fn(ctx, &multi)
+				refresh.RefreshWithMulti(ctx, s.Name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
+					res, err := s.Fetch(ctx, cfg)
+					if err != nil {
+						return nil, err
+					}
+					return model.ToAnySlice(res), nil
+				}, &multi)
 			}(svc)
 		}
 		wg.Wait()

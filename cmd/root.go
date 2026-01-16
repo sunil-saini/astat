@@ -20,6 +20,7 @@ import (
 	"github.com/sunil-saini/astat/cmd/rds"
 	"github.com/sunil-saini/astat/cmd/route53"
 	"github.com/sunil-saini/astat/cmd/s3"
+	"github.com/sunil-saini/astat/cmd/sqs"
 	"github.com/sunil-saini/astat/cmd/ssm"
 	"github.com/sunil-saini/astat/internal/logger"
 	"github.com/sunil-saini/astat/internal/refresh"
@@ -150,6 +151,7 @@ func init() {
 	rootCmd.AddCommand(elb.ElbCmd)
 	rootCmd.AddCommand(rds.RDSCmd)
 	rootCmd.AddCommand(domain.DomainCmd)
+	rootCmd.AddCommand(sqs.SQSCmd)
 
 	rootCmd.AddCommand(ConfigCmd)
 	rootCmd.AddCommand(completionCmd)

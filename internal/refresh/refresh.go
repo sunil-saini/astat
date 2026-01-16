@@ -16,6 +16,7 @@ import (
 	"github.com/sunil-saini/astat/internal/cache"
 	"github.com/sunil-saini/astat/internal/logger"
 	"github.com/sunil-saini/astat/internal/model"
+	"github.com/sunil-saini/astat/internal/registry"
 )
 
 type Tracker interface {
@@ -86,39 +87,6 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 	tracker.Success(fmt.Sprintf("%s refreshed", resource))
 }
 
-var serviceRegistry = map[string]func(context.Context, sdkaws.Config) (any, error){
-	"ec2": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchEC2Instances(ctx, cfg)
-	},
-	"s3": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchS3Buckets(ctx, cfg)
-	},
-	"lambda": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchLambdaFunctions(ctx, cfg)
-	},
-	"cloudfront": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchCloudFront(ctx, cfg)
-	},
-	"route53-zones": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchHostedZones(ctx, cfg)
-	},
-	"route53-records": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchAllRoute53Records(ctx, cfg)
-	},
-	"ssm": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchSSMParameters(ctx, cfg)
-	},
-	"elb": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchLoadBalancers(ctx, cfg)
-	},
-	"rds-clusters": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchRDSClusters(ctx, cfg)
-	},
-	"rds-instances": func(ctx context.Context, cfg sdkaws.Config) (any, error) {
-		return aws.FetchRDSInstances(ctx, cfg)
-	},
-}
-
 func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error)) {
 	var meta cache.Meta
 	cache.Read(cache.Path(cache.Dir(), "meta"), &meta)
@@ -174,14 +142,21 @@ func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ct
 }
 
 func refreshInternal(ctx context.Context, name string, tracker Tracker) {
-	fetch, ok := serviceRegistry[name]
-	if !ok {
+	var service *registry.Service
+	for _, s := range registry.Registry {
+		if s.Name == name {
+			service = &s
+			break
+		}
+	}
+
+	if service == nil {
 		logger.Warn("unknown service: %s", name)
 		return
 	}
 
 	Refresh(ctx, name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
-		res, err := fetch(ctx, cfg)
+		res, err := service.Fetch(ctx, cfg)
 		if err != nil {
 			return nil, err
 		}

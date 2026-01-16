@@ -10,6 +10,7 @@ import (
 	"github.com/sunil-saini/astat/internal/cache"
 	"github.com/sunil-saini/astat/internal/logger"
 	"github.com/sunil-saini/astat/internal/refresh"
+	"github.com/sunil-saini/astat/internal/registry"
 	"github.com/sunil-saini/astat/internal/version"
 )
 
@@ -59,8 +60,6 @@ Examples:
 		}
 
 		ttl := viper.GetDuration("ttl")
-		allServices := []string{"ec2", "s3", "lambda", "cloudfront", "route53-zones", "route53-records", "ssm", "elb", "rds-clusters", "rds-instances"}
-
 		pterm.DefaultSection.Println("Cache Status")
 		pterm.Printf("%s: %s\n", pterm.LightMagenta("Last Refresh"), pterm.Cyan(meta.LastUpdated.Format(time.RFC1123)))
 		pterm.Printf("%s:          %s\n\n", pterm.LightMagenta("TTL"), pterm.Cyan(ttl))
@@ -71,16 +70,16 @@ Examples:
 		}
 
 		isAnyStale := false
-		for _, s := range allServices {
-			sMeta, ok := meta.Services[s]
+		for _, s := range registry.Registry {
+			sMeta, ok := meta.Services[s.Name]
 			if !ok {
-				data = append(data, []string{s, pterm.LightRed("✗ NEVER"), pterm.LightRed("-")})
+				data = append(data, []string{s.Name, pterm.LightRed("✗ NEVER"), pterm.LightRed("-")})
 				isAnyStale = true
 				continue
 			}
 
 			if sMeta.Refreshing && refresh.IsProcessAlive(sMeta.BusyPID) {
-				data = append(data, []string{s, pterm.LightBlue("● REFRESHING"), pterm.LightBlue(fmt.Sprintf("PID: %d", sMeta.BusyPID))})
+				data = append(data, []string{s.Name, pterm.LightBlue("● REFRESHING"), pterm.LightBlue(fmt.Sprintf("PID: %d", sMeta.BusyPID))})
 				continue
 			}
 
@@ -101,7 +100,7 @@ Examples:
 				isAnyStale = true
 			}
 
-			data = append(data, []string{s, statusText, ageText})
+			data = append(data, []string{s.Name, statusText, ageText})
 		}
 
 		pterm.DefaultTable.
