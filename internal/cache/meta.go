@@ -1,6 +1,11 @@
 package cache
 
-import "time"
+import (
+	"sync"
+	"time"
+)
+
+var metaMu sync.Mutex
 
 type ServiceMeta struct {
 	LastUpdated time.Time `json:"last_updated"`
@@ -11,4 +16,12 @@ type ServiceMeta struct {
 type Meta struct {
 	LastUpdated time.Time              `json:"last_updated"`
 	Services    map[string]ServiceMeta `json:"services"`
+}
+
+func LockMeta() {
+	metaMu.Lock()
+}
+
+func UnlockMeta() {
+	metaMu.Unlock()
 }

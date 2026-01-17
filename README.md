@@ -23,6 +23,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sunil-saini/astat?style=flat-square)](https://goreportcard.com/report/github.com/sunil-saini/astat)
 [![License](https://img.shields.io/github/license/sunil-saini/astat?style=flat-square)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/sunil-saini/astat/total?style=flat-square)](https://github.com/sunil-saini/astat/releases)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/sunil-saini/astat)
 
 [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Usage](#-usage) • [Documentation](#-documentation)
 

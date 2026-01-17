@@ -45,16 +45,21 @@ Examples:
 				return
 			}
 
-			if err := cache.Write(metaPath, meta); err != nil {
+			cache.LockMeta()
+			if err := cache.Write(metaPath, &meta); err != nil {
+				cache.UnlockMeta()
 				logger.Error("Failed to initialize cache metadata: %v", err)
 				return
 			}
+			cache.UnlockMeta()
 			logger.Success("Cache initialized successfully")
 			cacheInitialized = true
 
 			logger.Info("Triggering initial refresh to populate cache...")
 			refreshCmd.Run(cmd, args)
 
+			cache.LockMeta()
+			defer cache.UnlockMeta()
 			if err := cache.Read(metaPath, &meta); err != nil {
 				logger.Error("Failed to read cache metadata after refresh: %v", err)
 				return

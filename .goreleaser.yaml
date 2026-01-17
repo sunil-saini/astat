@@ -82,7 +82,7 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.GITHUB_TOKEN }}"
     homepage: https://github.com/sunil-saini/astat
-    description: "A Lightning fast local AWS Stats indexer"
+    description: "A blazing fast CLI tool that caches AWS resources details locally and provides deep infrastructure tracing"
     license: MIT
     directory: Formula
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
@@ -91,7 +91,8 @@ brews:
       bash_completion.install "completions/astat.bash" => "astat"
       zsh_completion.install "completions/astat.zsh" => "_astat"
       fish_completion.install "completions/astat.fish"
-    post_install: |
-      system "#{bin}/astat", "install"
+    caveats: |
+      To initialize configuration and cache, run:
+        astat install
     test: |
       system "#{bin}/astat", "version"

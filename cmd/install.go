@@ -5,10 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sunil-saini/astat/internal/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,63 +16,67 @@ var installCmd = &cobra.Command{
 	Long:    "Install astat including binary placement and autocomplete",
 	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
-		pterm.DefaultHeader.WithFullWidth().Println("Welcome to astat!")
-		fmt.Println()
+		ui := NewUI()
+
+		ui.Header("Welcome to astat!")
+		ui.Println()
 
 		// 1. Binary path check
-		spinner, _ := pterm.DefaultSpinner.Start("Checking environment...")
+		spinner := ui.Spinner("Checking environment...")
 		_, err := os.Executable()
 		if err != nil {
 			spinner.Fail("Could not determine current executable path")
 			return
 		}
+		spinner.Success("Environment check complete")
 
 		// 2. Autocomplete installation
-		spinner.UpdateText("Setting up autocomplete...")
 		shellPath := os.Getenv("SHELL")
 		if shellPath != "" {
 			shell := filepath.Base(shellPath)
-			if shell == "zsh" || shell == "bash" {
+			if shell == "zsh" || shell == "bash" || shell == "fish" {
+				spinner = ui.Spinner(fmt.Sprintf("Setting up autocomplete for %s...", shell))
 				installCompletionCmd.Run(cmd, []string{})
 				spinner.Success(fmt.Sprintf("Autocomplete configured for %s", shell))
 			} else {
-				spinner.Warning(fmt.Sprintf("Automatic autocomplete setup for %s is not supported yet", shell))
+				ui.Warning(fmt.Sprintf("Automatic autocomplete setup for %s is not supported yet", shell))
 			}
 		} else {
-			spinner.Warning("Could not detect shell for autocomplete setup")
+			ui.Warning("Could not detect shell for autocomplete setup")
 		}
 
 		// 3. Config initialization
-		spinner.UpdateText("Initializing configuration...")
-		installConfig()
-		spinner.Success("Configuration initialized")
+		spinner = ui.Spinner("Initializing configuration...")
+		if msg := installConfig(ui); msg != "" {
+			spinner.Success(msg)
+		} else {
+			spinner.Success("Configuration initialized")
+		}
 
 		// 4. Initial refresh
-		fmt.Println()
+		ui.Println()
 		refreshCmd.Run(cmd, []string{})
 
-		fmt.Println()
-		pterm.Success.Println("Installation complete! ✨")
-		fmt.Println()
+		ui.Println()
+		ui.Success("Installation complete! ✨")
+		ui.Println()
 
-		pterm.DefaultSection.Println("Next Steps")
-		pterm.BulletListPrinter{
-			Items: []pterm.BulletListItem{
-				{Text: "Run " + pterm.Cyan("astat status") + " to check cache status and updates", Bullet: "→"},
-				{Text: "Run " + pterm.Cyan("astat ec2 list") + " to see your instances", Bullet: "→"},
-				{Text: "Restart your terminal to enable autocomplete", Bullet: "→"},
-			},
-		}.Render()
+		ui.Section("Next Steps")
+		ui.BulletList([]string{
+			"Run 'astat status' to check cache status and updates",
+			"Run 'astat ec2 list' to see your instances",
+			"Restart your terminal to enable autocomplete",
+		})
 
-		fmt.Println()
+		ui.Println()
 	},
 }
 
-func installConfig() {
+func installConfig(ui UI) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Error("Failed to get home directory: %v", err)
-		return
+		ui.Error(fmt.Sprintf("Failed to get home directory: %v", err))
+		return ""
 	}
 
 	configDir := filepath.Join(home, ".config", "astat")
@@ -82,8 +84,8 @@ func installConfig() {
 
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(configDir, 0755); err != nil {
-			logger.Error("Failed to create config directory: %v", err)
-			return
+			ui.Error(fmt.Sprintf("Failed to create config directory: %v", err))
+			return ""
 		}
 	}
 
@@ -97,14 +99,15 @@ func installConfig() {
 
 		defaultConfig, err := yaml.Marshal(settings)
 		if err != nil {
-			logger.Error("Failed to marshal default config: %v", err)
-			return
+			ui.Error(fmt.Sprintf("Failed to marshal default config: %v", err))
+			return ""
 		}
 
 		if err := os.WriteFile(configFile, defaultConfig, 0644); err != nil {
-			logger.Error("Failed to create default config file: %v", err)
-			return
+			ui.Error(fmt.Sprintf("Failed to create default config file: %v", err))
+			return ""
 		}
-		logger.Success("Created default configuration at %s", configFile)
+		return fmt.Sprintf("Created default configuration at %s", configFile)
 	}
+	return ""
 }

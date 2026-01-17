@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/logger"
 )
 
 var completionCmd = &cobra.Command{
@@ -71,9 +71,10 @@ var installCompletionCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Automatically install autocomplete script for your current shell",
 	Run: func(cmd *cobra.Command, args []string) {
+		ui := NewUI()
 		shellPath := os.Getenv("SHELL")
 		if shellPath == "" {
-			logger.Error("Could not detect SHELL environment variable")
+			ui.Error("Could not detect SHELL environment variable")
 			return
 		}
 
@@ -83,41 +84,49 @@ var installCompletionCmd = &cobra.Command{
 		switch shell {
 		case "zsh":
 			rcPath := filepath.Join(home, ".zshrc")
-			installToShell(rcPath, `(( $+commands[astat] )) && source <(astat completion zsh) 2>/dev/null`)
+			installToShell(ui, rcPath, `(( $+commands[astat] )) && source <(astat completion zsh) 2>/dev/null`)
 		case "bash":
 			rcPath := filepath.Join(home, ".bashrc")
-			installToShell(rcPath, `command -v astat >/dev/null 2>&1 && source <(astat completion bash)`)
+			installToShell(ui, rcPath, `command -v astat >/dev/null 2>&1 && source <(astat completion bash)`)
+		case "fish":
+			rcPath := filepath.Join(home, ".config", "fish", "config.fish")
+			configDir := filepath.Dir(rcPath)
+			if err := os.MkdirAll(configDir, 0755); err != nil {
+				ui.Error(fmt.Sprintf("Failed to create fish config directory: %v", err))
+				return
+			}
+			installToShell(ui, rcPath, `command -v astat > /dev/null; and astat completion fish | source`)
 		default:
-			logger.Warn("Automatic installation for %s is not supported yet. Please use manual instructions from 'astat completion --help'", shell)
+			ui.Warning(fmt.Sprintf("Automatic installation for %s is not supported yet. Please use manual instructions from 'astat completion --help'", shell))
 		}
 	},
 }
 
-func installToShell(rcPath, line string) {
+func installToShell(ui UI, rcPath, line string) {
 	content, err := os.ReadFile(rcPath)
 	if err != nil && !os.IsNotExist(err) {
-		logger.Error("Failed to read %s: %v", rcPath, err)
+		ui.Error(fmt.Sprintf("Failed to read %s: %v", rcPath, err))
 		return
 	}
 
 	if strings.Contains(string(content), line) {
-		logger.Info("Autocomplete already installed in %s", rcPath)
+		ui.Info(fmt.Sprintf("Autocomplete already installed in %s", rcPath))
 		return
 	}
 
 	f, err := os.OpenFile(rcPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		logger.Error("Failed to open %s for writing: %v", rcPath, err)
+		ui.Error(fmt.Sprintf("Failed to open %s for writing: %v", rcPath, err))
 		return
 	}
 	defer f.Close()
 
 	if _, err := f.WriteString("\n# astat autocomplete\n" + line + "\n"); err != nil {
-		logger.Error("Failed to write to %s: %v", rcPath, err)
+		ui.Error(fmt.Sprintf("Failed to write to %s: %v", rcPath, err))
 		return
 	}
 
-	logger.Success("Autocomplete installed in %s. Please restart your shell or run: source %s", rcPath, rcPath)
+	ui.Success(fmt.Sprintf("Autocomplete installed in %s. Please restart your shell or run: source %s", rcPath, rcPath))
 }
 
 func init() {

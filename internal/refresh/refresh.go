@@ -47,6 +47,8 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 
 	metaFile := cache.Path(dir, "meta")
 	var meta cache.Meta
+
+	cache.LockMeta()
 	cache.Read(metaFile, &meta)
 	if meta.Services == nil {
 		meta.Services = make(map[string]cache.ServiceMeta)
@@ -55,11 +57,17 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 	sMeta.Refreshing = true
 	sMeta.BusyPID = os.Getpid()
 	meta.Services[resource] = sMeta
-	cache.Write(metaFile, meta)
+	if err := cache.Write(metaFile, &meta); err != nil {
+		logger.Error("Failed to update cache metadata: %v", err)
+	}
+	cache.UnlockMeta()
 
 	// Track whether the refresh was successful
 	success := false
 	defer func() {
+		cache.LockMeta()
+		defer cache.UnlockMeta()
+
 		cache.Read(metaFile, &meta)
 		if meta.Services == nil {
 			meta.Services = make(map[string]cache.ServiceMeta)
@@ -72,7 +80,9 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 			meta.LastUpdated = time.Now()
 		}
 		meta.Services[resource] = sMeta
-		cache.Write(metaFile, meta)
+		if err := cache.Write(metaFile, &meta); err != nil {
+			logger.Error("Failed to update cache metadata: %v", err)
+		}
 	}()
 
 	tracker.Update(fmt.Sprintf("%s fetching...", resource))

@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/sunil-saini/astat/internal/model"
 	"github.com/sunil-saini/astat/internal/refresh"
@@ -20,32 +18,33 @@ var refreshCmd = &cobra.Command{
 	GroupID: "project",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
+		ui := NewUI()
 
-		multi := pterm.DefaultMultiPrinter
-		multi.Start()
-		defer multi.Stop()
+		ui.Println()
+		ui.Info("Refreshing all services...")
+		ui.Println()
 
-		fmt.Println()
-		pterm.Info.Println("Refreshing all services...")
-		fmt.Println()
+		ui.StartRefresh()
+		defer ui.StopRefresh()
 
 		var wg sync.WaitGroup
 		for _, svc := range registry.Registry {
 			wg.Add(1)
-			go func(s registry.Service) {
+			go func(service registry.Service) {
 				defer wg.Done()
-				refresh.RefreshWithMulti(ctx, s.Name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
-					res, err := s.Fetch(ctx, cfg)
+				tracker := ui.GetRefreshTracker(service.Name)
+				refresh.Refresh(ctx, service.Name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
+					res, err := service.Fetch(ctx, cfg)
 					if err != nil {
 						return nil, err
 					}
 					return model.ToAnySlice(res), nil
-				}, &multi)
+				}, tracker)
 			}(svc)
 		}
 		wg.Wait()
 
-		fmt.Println()
-		pterm.Success.Println("All services refreshed!")
+		ui.Println()
+		ui.Success("All services refreshed!")
 	},
 }
