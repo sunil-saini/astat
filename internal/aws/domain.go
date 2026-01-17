@@ -106,14 +106,23 @@ func resolveRoute53Record(ctx context.Context, cfg sdkaws.Config, host string) *
 		}
 	}
 
-	// 2. If not found, check Zones Cache and fetch only for that zone
-	var zones []model.Route53HostedZone
-	if ok, _ := cache.Load(cache.Path(cache.Dir(), "route53-zones"), &zones); ok {
+	// 2. Try to fetch latest Zones from AWS
+	zones, err := FetchHostedZones(ctx, cfg)
+	if err == nil {
+		// Update zones cache
+		_ = cache.Write(cache.Path(cache.Dir(), "route53-zones"), zones)
+	} else {
+		// Fallback to Zones Cache if fetching fails
+		_, _ = cache.Load(cache.Path(cache.Dir(), "route53-zones"), &zones)
+	}
+
+	if len(zones) > 0 {
 		matchedZone := findMatchingZone(host, zones)
 		if matchedZone != nil {
 			return fetchRecordInZone(ctx, cfg, host, matchedZone)
 		}
 	}
+
 	return nil
 }
 
