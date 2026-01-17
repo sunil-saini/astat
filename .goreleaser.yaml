@@ -91,5 +91,7 @@ brews:
       bash_completion.install "completions/astat.bash" => "astat"
       zsh_completion.install "completions/astat.zsh" => "_astat"
       fish_completion.install "completions/astat.fish"
+    post_install: |
+      system "#{bin}/astat", "install"
     test: |
       system "#{bin}/astat", "version"

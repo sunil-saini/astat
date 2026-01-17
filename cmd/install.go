@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -30,9 +29,6 @@ var installCmd = &cobra.Command{
 			return
 		}
 
-		spinner.UpdateText("Installing binary to /usr/local/bin...")
-		installBinary()
-
 		// 2. Autocomplete installation
 		spinner.UpdateText("Setting up autocomplete...")
 		shellPath := os.Getenv("SHELL")
@@ -53,6 +49,10 @@ var installCmd = &cobra.Command{
 		installConfig()
 		spinner.Success("Configuration initialized")
 
+		// 4. Initial refresh
+		fmt.Println()
+		refreshCmd.Run(cmd, []string{})
+
 		fmt.Println()
 		pterm.Success.Println("Installation complete! ✨")
 		fmt.Println()
@@ -60,57 +60,14 @@ var installCmd = &cobra.Command{
 		pterm.DefaultSection.Println("Next Steps")
 		pterm.BulletListPrinter{
 			Items: []pterm.BulletListItem{
+				{Text: "Run " + pterm.Cyan("astat status") + " to check cache status and updates", Bullet: "→"},
 				{Text: "Run " + pterm.Cyan("astat ec2 list") + " to see your instances", Bullet: "→"},
-				{Text: "Run " + pterm.Cyan("astat config list") + " to see current settings", Bullet: "→"},
 				{Text: "Restart your terminal to enable autocomplete", Bullet: "→"},
 			},
 		}.Render()
 
 		fmt.Println()
 	},
-}
-
-func installBinary() {
-	if runtime.GOOS == "windows" {
-		logger.Warn("Windows is not supported yet!")
-		return
-	}
-
-	execPath, err := os.Executable()
-	if err != nil {
-		logger.Error("Could not find current binary: %v", err)
-		return
-	}
-
-	target := "/usr/local/bin/astat"
-
-	// Check if already installed
-	if execPath == target {
-		return
-	}
-
-	logger.Info("Attempting to install astat to %s...", target)
-
-	// Check if we have write access to /usr/local/bin
-	if err = os.WriteFile(target+"_test", []byte("test"), 0644); err != nil {
-		logger.Warn("Permission denied for /usr/local/bin. You might need to run: sudo cp %s %s", execPath, target)
-		return
-	}
-	os.Remove(target + "_test")
-
-	input, err := os.ReadFile(execPath)
-	if err != nil {
-		logger.Error("Failed to read current binary: %v", err)
-		return
-	}
-
-	err = os.WriteFile(target, input, 0755)
-	if err != nil {
-		logger.Error("Failed to copy binary: %v", err)
-		return
-	}
-
-	logger.Success("Installed astat to %s", target)
 }
 
 func installConfig() {
