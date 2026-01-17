@@ -15,7 +15,7 @@
 </tr>
 </table>
 
-**⚡ Lightning fast local AWS Stats indexer**
+**⚡ A blazing fast CLI tool that caches AWS resources details locally and provides deep infrastructure tracing**
 
 [![Release](https://img.shields.io/github/v/release/sunil-saini/astat?style=flat-square)](https://github.com/sunil-saini/astat/releases)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/sunil-saini/astat/release.yml?style=flat-square)](https://github.com/sunil-saini/astat/actions)
@@ -34,6 +34,8 @@
 
 Tired of waiting for AWS CLI commands to complete? **astat** caches AWS resources stats locally for **instant access** and provides deep **infrastructure tracing** to visualize exactly how your domain requests flow through AWS
 
+**100-250x faster** for everyday queries!
+
 ```bash
 # Traditional AWS CLI (slow, every time)
 $ time aws <service> describe-* --query '...'
@@ -46,8 +48,6 @@ $ time astat <service> list
 # understand exactly how your domain requests flow through AWS
 $ astat domain trace myr53.hostedrecord.com/api
 ```
-
-**100-250x faster** for everyday queries!
 
 ## ✨ Features
 
@@ -104,17 +104,17 @@ $ astat domain trace myr53.hostedrecord.com/api
 
 astat provides native support for these AWS services with lightning-fast local caching:
 
-| Service | Category | Status |
-| :--- | :--- | :--- |
-| **EC2** | Compute | ✅ Supported |
-| **S3** | Storage | ✅ Supported |
-| **Lambda** | Serverless | ✅ Supported |
-| **Route53** | Networking & DNS | ✅ Supported |
-| **CloudFront** | Content Delivery | ✅ Supported |
-| **Load Balancers** | Networking (ALB/NLB/CLB) | ✅ Supported |
-| **RDS** | Databases (Clusters & Instances) | ✅ Supported |
-| **SQS** | Messaging | ✅ Supported |
-| **SSM** | Secrets | ✅ Supported |
+| Service | Status |
+| :--- | :--- |
+| **EC2** | ✅ Supported |
+| **S3** | ✅ Supported |
+| **Lambda** | ✅ Supported |
+| **Route53** | ✅ Supported |
+| **CloudFront** | ✅ Supported |
+| **Load Balancers** | ✅ Supported |
+| **RDS** | ✅ Supported |
+| **SQS** | ✅ Supported |
+| **SSM** | ✅ Supported |
 
 ## 📦 Installation
 
@@ -221,11 +221,21 @@ astat ssm get <parameter-name>
 The flagship feature of **astat**! Trace exactly how a domain or request URI is routed through your AWS infrastructure
 
 ```bash
-# Trace a domain flow
-astat domain trace api.example.com
-
 # Trace a specific URI
-astat domain trace api.example.com/v1/health
+astat domain trace myr53.hostedrecord.com/api
+ SUCCESS  Trace complete for myr53.hostedrecord.com/api
+
+myr53.hostedrecord.com/api
+└─┬[Route53] myr53.hostedrecord.com. -> my-alb-1234567890.us-east-1.elb.amazonaws.com. (Alias+A)
+  └─┬[ALB] my-alb (internet-facing) -> my-alb-1234567890.us-east-1.elb.amazonaws.com
+    ├─┬[Listener] HTTP:80
+    │ └──[Rule] Priority 3: [host-header:myr53.hostedrecord.com]
+    └─┬[Listener] HTTPS:443
+      └─┬[Rule] Priority 24999: [host-header:myr53.hostedrecord.com]
+        └─┬[TargetGroup] my-target-group
+          ├──[Target] 10.10.0.1 -> healthy
+          ├──[Target] 10.10.0.2 -> healthy
+          └──[Target] 10.10.0.3 -> healthy
 ```
 
 **What it traces:**
