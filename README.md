@@ -18,7 +18,6 @@
 **⚡ A blazing fast CLI tool that caches AWS resources details locally and provides deep infrastructure tracing**
 
 [![Release](https://img.shields.io/github/v/release/sunil-saini/astat?style=flat-square)](https://github.com/sunil-saini/astat/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/sunil-saini/astat/release.yml?style=flat-square)](https://github.com/sunil-saini/astat/actions)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=sunil-saini_astat&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=sunil-saini_astat)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sunil-saini/astat?style=flat-square)](https://goreportcard.com/report/github.com/sunil-saini/astat)
 [![License](https://img.shields.io/github/license/sunil-saini/astat?style=flat-square)](LICENSE)
@@ -119,17 +118,16 @@ astat provides native support for these AWS services with lightning-fast local c
 
 ## 📦 Installation
 
+### One Liner Script (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/refs/heads/main/install.sh | sh
+```
 
 ### Homebrew
 
 ```bash
 brew install sunil-saini/tap/astat
-```
-
-### One Liner Script
-
-```bash
-curl -sSL https://raw.githubusercontent.com/sunil-saini/astat/refs/heads/main/install.sh | sh
 ```
 
 ### Direct Download
