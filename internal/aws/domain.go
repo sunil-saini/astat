@@ -65,6 +65,11 @@ func TraceDomain(ctx context.Context, cfg sdkaws.Config, domain string) (*model.
 
 	target := strings.TrimSuffix(foundRecord.Value, ".")
 
+	// Update region if target is a regional AWS service (like ELB)
+	if detectedRegion := extractRegion(target); detectedRegion != "" && detectedRegion != cfg.Region {
+		cfg.Region = detectedRegion
+	}
+
 	// 2. Trace CloudFront
 	if node, matched := traceCloudFront(ctx, cfg, target, path); matched {
 		r53Node.Children = append(r53Node.Children, *node)
@@ -499,4 +504,31 @@ func sortRules(rules []model.Rule) {
 		pj, _ := strconv.Atoi(rules[j].Priority)
 		return pi < pj
 	})
+}
+
+func extractRegion(dnsName string) string {
+	// Patterns for different regional AWS services
+	// ELB: name-123456789.us-east-1.elb.amazonaws.com
+	// S3: bucket.s3.us-east-1.amazonaws.com or bucket.s3-control.us-east-1.amazonaws.com
+	// RDS: instance.cluster-id.us-east-1.rds.amazonaws.com
+	// EC2: ec2-1-2-3-4.us-east-1.compute.amazonaws.com
+
+	patterns := []string{
+		`\.([a-z]{2}-[a-z]+-\d)\.elb\.amazonaws\.com`,
+		`\.s3\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com`,
+		`\.s3-control\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com`,
+		`\.([a-z]{2}-[a-z]+-\d)\.rds\.amazonaws\.com`,
+		`\.([a-z]{2}-[a-z]+-\d)\.compute\.amazonaws\.com`,
+		`\.([a-z]{2}-[a-z]+-\d)\.compute\.internal`,
+	}
+
+	for _, p := range patterns {
+		re := regexp.MustCompile(p)
+		matches := re.FindStringSubmatch(dnsName)
+		if len(matches) > 1 {
+			return matches[1]
+		}
+	}
+
+	return ""
 }
