@@ -1,9 +1,19 @@
 package elb
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"github.com/sunil-saini/astat/internal/render"
+)
 
-var ElbCmd = &cobra.Command{
-	Use:     "elb",
-	Short:   "Elastic Load Balancers",
-	GroupID: "resources",
+var listCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List Load Balancers",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return render.List(cmd, args, "elb")
+	},
+}
+
+func init() {
+	ElbCmd.AddCommand(listCmd)
 }

@@ -2,7 +2,6 @@ package ec2
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/aws"
 	"github.com/sunil-saini/astat/internal/render"
 )
 
@@ -22,7 +21,7 @@ Examples:
   # Output as JSON
   astat ec2 list --output json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return render.List(cmd, "ec2", aws.FetchEC2Instances)
+		return render.List(cmd, args, "ec2")
 	},
 }
 

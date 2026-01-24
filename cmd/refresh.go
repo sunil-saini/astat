@@ -6,7 +6,6 @@ import (
 
 	sdkaws "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/model"
 	"github.com/sunil-saini/astat/internal/refresh"
 	"github.com/sunil-saini/astat/internal/registry"
 )
@@ -33,12 +32,8 @@ var refreshCmd = &cobra.Command{
 			go func(service registry.Service) {
 				defer wg.Done()
 				tracker := ui.GetRefreshTracker(service.Name)
-				refresh.Refresh(ctx, service.Name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
-					res, err := service.Fetch(ctx, cfg)
-					if err != nil {
-						return nil, err
-					}
-					return model.ToAnySlice(res), nil
+				refresh.Refresh(ctx, service.Name, func(ctx context.Context, cfg sdkaws.Config) (any, error) {
+					return service.Fetch(ctx, cfg)
 				}, tracker)
 			}(svc)
 		}

@@ -2,7 +2,6 @@ package s3
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/aws"
 	"github.com/sunil-saini/astat/internal/render"
 )
 
@@ -25,7 +24,7 @@ Examples:
   # Output as JSON
   astat s3 list --output json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return render.List(cmd, "s3", aws.FetchS3Buckets)
+		return render.List(cmd, args, "s3")
 	},
 }
 

@@ -2,7 +2,6 @@ package rds
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/sunil-saini/astat/internal/aws"
 	"github.com/sunil-saini/astat/internal/render"
 )
 
@@ -19,7 +18,7 @@ Examples:
   # Force refresh from AWS
   astat rds instances --refresh`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return render.List(cmd, "rds-instances", aws.FetchRDSInstances)
+		return render.List(cmd, args, "rds-instances")
 	},
 }
 

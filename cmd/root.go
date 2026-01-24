@@ -47,11 +47,13 @@ a local cache for instant querying and visualizes exactly how your
 domain requests flow through AWS (DNS -> CloudFront -> LB -> Target -> EC2)
 
 Example workflow:
-  $ astat status                	# Check cache status
-  $ astat refresh               	# Refresh all services
-  $ astat domain trace <domain/uri> # Trace request flow through AWS
-  $ astat ec2 list              	# List EC2 instances (instant!)
-  $ astat s3 list --refresh     	# Force refresh S3 buckets
+  $ astat status                		# Check cache status
+  $ astat refresh               		# Refresh all services
+  $ astat domain trace <domain/uri>		# Trace request flow through AWS
+  $ astat ec2 list              		# List EC2 instances (instant!)
+  $ astat ec2 ls              			# Alias for 'list'
+  $ astat ec2 ls <search-text>			# Search EC2 instances with matching search text
+  $ astat s3 list --refresh     		# Force refresh S3 buckets
 
 Learn more: https://github.com/sunil-saini/astat`,
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {

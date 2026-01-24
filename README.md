@@ -57,15 +57,17 @@ $ astat domain trace myr53.hostedrecord.com/api
 
 ### 🚀 Performance
 - **Lightning Fast**: Local caching for instant access
-- **Concurrent Refresh**: Refresh all services in parallel
-- **Smart Caching**: Configurable TTL and Auto Refresh
+- **Faster Refresh**: Refresh all services in parallel
+- **Smart Caching**: Configurable cache TTL and Auto Refresh
+- **Background Refresh**: Non-blocking updates for stale data
 
 </td>
 <td width="50%">
 
 ### 🎨 User Experience
-- **Beautiful CLI**: Clean tabular output
+- **Beautiful CLI**: Clean tabular output (default)
 - **Multiple Formats**: Table, JSON
+- **Native Search**: Filter results instantly across all columns
 - **Shell Auto Completion**: Bash, Zsh, and Fish support
 
 </td>
@@ -192,8 +194,9 @@ go install github.com/sunil-saini/astat@latest
 
 ```bash
 # EC2 instances
-astat ec2 list              # or: astat ec2 ls
-astat ec2 list --refresh    # Force refresh from AWS
+astat ec2 list                # or: astat ec2 ls
+astat ec2 list my-ec2         # Search/Filter by name, ID or IP
+astat ec2 list --refresh      # Force refresh from AWS
 
 # S3 buckets
 astat s3 list

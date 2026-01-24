@@ -16,7 +16,6 @@ import (
 	"github.com/sunil-saini/astat/internal/aws"
 	"github.com/sunil-saini/astat/internal/cache"
 	"github.com/sunil-saini/astat/internal/logger"
-	"github.com/sunil-saini/astat/internal/model"
 	"github.com/sunil-saini/astat/internal/registry"
 )
 
@@ -34,7 +33,7 @@ func (p *ptermTracker) Update(msg string)  { p.spinner.UpdateText(msg) }
 func (p *ptermTracker) Success(msg string) { p.spinner.Success(msg) }
 func (p *ptermTracker) Error(msg string)   { p.spinner.Fail(msg) }
 
-func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error), tracker Tracker) {
+func Refresh(ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) (any, error), tracker Tracker) {
 	tracker.Update(fmt.Sprintf("%s loading config...", resource))
 	cfg, err := aws.LoadConfig(ctx)
 	if err != nil {
@@ -98,7 +97,7 @@ func Refresh[T any](ctx context.Context, resource string, fetch func(ctx context
 	tracker.Success(fmt.Sprintf("%s refreshed", resource))
 }
 
-func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error)) {
+func RefreshSync(ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) (any, error)) {
 	multi := pterm.DefaultMultiPrinter
 	multi.Start()
 	defer multi.Stop()
@@ -106,7 +105,7 @@ func RefreshSync[T any](ctx context.Context, resource string, fetch func(ctx con
 	RefreshWithMulti(ctx, resource, fetch, &multi)
 }
 
-func RefreshWithMulti[T any](ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) ([]T, error), multi *pterm.MultiPrinter) {
+func RefreshWithMulti(ctx context.Context, resource string, fetch func(ctx context.Context, cfg sdkaws.Config) (any, error), multi *pterm.MultiPrinter) {
 	var meta cache.Meta
 	cache.Read(cache.Path(cache.Dir(), "meta"), &meta)
 
@@ -150,12 +149,8 @@ func refreshInternal(ctx context.Context, name string, tracker Tracker) {
 		return
 	}
 
-	Refresh(ctx, name, func(ctx context.Context, cfg sdkaws.Config) ([]any, error) {
-		res, err := service.Fetch(ctx, cfg)
-		if err != nil {
-			return nil, err
-		}
-		return model.ToAnySlice(res), nil
+	Refresh(ctx, name, func(ctx context.Context, cfg sdkaws.Config) (any, error) {
+		return service.Fetch(ctx, cfg)
 	}, tracker)
 }
 

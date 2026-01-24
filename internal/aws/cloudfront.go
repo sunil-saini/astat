@@ -106,17 +106,7 @@ func fetchAllTenants(ctx context.Context, client *cloudfront.Client) (map[string
 		}
 
 		for _, t := range out.DistributionTenantList {
-			if t.DistributionId == nil {
-				continue
-			}
-			distID := *t.DistributionId
-			var domains []string
-			for _, d := range t.Domains {
-				if d.Domain != nil {
-					domains = append(domains, *d.Domain)
-				}
-			}
-			tenantsByDist[distID] = append(tenantsByDist[distID], domains...)
+			addTenantDomains(t, tenantsByDist)
 		}
 
 		if out.NextMarker == nil || *out.NextMarker == "" {
@@ -126,4 +116,22 @@ func fetchAllTenants(ctx context.Context, client *cloudfront.Client) (map[string
 	}
 
 	return tenantsByDist, nil
+}
+
+func addTenantDomains(t cfTypes.DistributionTenantSummary, tenantsByDist map[string][]string) {
+	if t.DistributionId == nil {
+		return
+	}
+
+	distID := *t.DistributionId
+	var domains []string
+	for _, d := range t.Domains {
+		if d.Domain != nil {
+			domains = append(domains, *d.Domain)
+		}
+	}
+
+	if len(domains) > 0 {
+		tenantsByDist[distID] = append(tenantsByDist[distID], domains...)
+	}
 }
