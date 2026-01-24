@@ -124,6 +124,16 @@ func mapRDSCluster(db rdsTypes.DBCluster) model.RDSCluster {
 		public = "Yes"
 	}
 
+	endpoint := ""
+	if db.Endpoint != nil {
+		endpoint = *db.Endpoint
+	}
+
+	readerEndpoint := ""
+	if db.ReaderEndpoint != nil {
+		readerEndpoint = *db.ReaderEndpoint
+	}
+
 	return model.RDSCluster{
 		ClusterIdentifier: *db.DBClusterIdentifier,
 		Status:            *db.Status,
@@ -132,6 +142,8 @@ func mapRDSCluster(db rdsTypes.DBCluster) model.RDSCluster {
 		MultiAZ:           multiAZ,
 		InstanceCount:     len(db.DBClusterMembers),
 		StorageType:       storageType,
+		Endpoint:          endpoint,
+		ReaderEndpoint:    readerEndpoint,
 		CreateTime:        db.ClusterCreateTime.Format("2006-01-02 15:04:05"),
 		IsPublic:          public,
 	}

@@ -17,6 +17,8 @@ import (
 	"github.com/sunil-saini/astat/internal/model"
 )
 
+const fmtNameValue = "%s (%s)"
+
 func TraceDomain(ctx context.Context, cfg sdkaws.Config, domain string) (*model.TraceResult, error) {
 	result := &model.TraceResult{Domain: domain}
 
@@ -60,7 +62,7 @@ func TraceDomain(ctx context.Context, cfg sdkaws.Config, domain string) (*model.
 	r53Node := model.TraceNode{
 		Type:  model.NodeRoute53,
 		Name:  foundRecord.Name,
-		Value: fmt.Sprintf("%s (%s)", foundRecord.Value, foundRecord.Type),
+		Value: fmt.Sprintf(fmtNameValue, foundRecord.Value, foundRecord.Type),
 	}
 
 	target := strings.TrimSuffix(foundRecord.Value, ".")
@@ -96,8 +98,81 @@ func TraceDomain(ctx context.Context, cfg sdkaws.Config, domain string) (*model.
 		}
 	}
 
+	// 4. Trace RDS
+	if node, matched := traceRDS(ctx, cfg, target); matched {
+		r53Node.Children = append(r53Node.Children, *node)
+		result.Hops = append(result.Hops, r53Node)
+		return result, nil
+	}
+
 	result.Hops = append(result.Hops, r53Node)
 	return result, nil
+}
+
+func traceRDS(ctx context.Context, cfg sdkaws.Config, target string) (*model.TraceNode, bool) {
+	rdsInstances, _ := FetchRDSInstances(ctx, cfg)
+
+	if node, matched := findRDSInstance(target, rdsInstances); matched {
+		return node, true
+	}
+
+	rdsClusters, _ := FetchRDSClusters(ctx, cfg)
+	return findRDSCluster(target, rdsClusters, rdsInstances)
+}
+
+func getHealthStatus(status string) string {
+	if status == "available" || status == "healthy" || status == "InService" {
+		return "healthy"
+	}
+	return "unhealthy"
+}
+
+func findRDSInstance(target string, instances []model.RDSInstance) (*model.TraceNode, bool) {
+	for _, inst := range instances {
+		if strings.TrimSuffix(inst.Endpoint, ".") == target {
+			return &model.TraceNode{
+				Type:   model.NodeRDS,
+				Name:   fmt.Sprintf("RDS Instance: %s", inst.InstanceIdentifier),
+				Value:  fmt.Sprintf("%s (%s %s)", inst.Endpoint, inst.Engine, inst.EngineVersion),
+				Status: getHealthStatus(inst.DBInstanceStatus),
+			}, true
+		}
+	}
+	return nil, false
+}
+
+func findRDSCluster(target string, clusters []model.RDSCluster, instances []model.RDSInstance) (*model.TraceNode, bool) {
+	for _, cluster := range clusters {
+		isPrimary := strings.TrimSuffix(cluster.Endpoint, ".") == target
+		isReader := strings.TrimSuffix(cluster.ReaderEndpoint, ".") == target
+
+		if isPrimary || isReader {
+			endpointType := "Writer"
+			if isReader {
+				endpointType = "Reader"
+			}
+
+			clusterNode := model.TraceNode{
+				Type:   model.NodeRDS,
+				Name:   fmt.Sprintf("RDS Cluster: %s (%s)", cluster.ClusterIdentifier, endpointType),
+				Value:  fmt.Sprintf("%s (%s %s)", target, cluster.Engine, cluster.EngineVersion),
+				Status: getHealthStatus(cluster.Status),
+			}
+
+			for _, inst := range instances {
+				if inst.ClusterIdentifier == cluster.ClusterIdentifier {
+					clusterNode.Children = append(clusterNode.Children, model.TraceNode{
+						Type:   "RDS Instance",
+						Name:   fmt.Sprintf(fmtNameValue, inst.InstanceIdentifier, inst.Role),
+						Value:  fmt.Sprintf(fmtNameValue, inst.DBInstanceStatus, inst.InstanceClass),
+						Status: getHealthStatus(inst.DBInstanceStatus),
+					})
+				}
+			}
+			return &clusterNode, true
+		}
+	}
+	return nil, false
 }
 
 func resolveRoute53Record(ctx context.Context, cfg sdkaws.Config, host string) *model.Route53Record {
@@ -206,8 +281,8 @@ func isCloudFrontDistMatch(target string, d model.CloudFrontDistribution) bool {
 		return true
 	}
 
-	distAliases := strings.Split(d.Aliases, ",")
-	for _, a := range distAliases {
+	distAliases := strings.SplitSeq(d.Aliases, ",")
+	for a := range distAliases {
 		if matchHost(target, a) {
 			return true
 		}
@@ -265,7 +340,7 @@ func traceLoadBalancer(ctx context.Context, cfg sdkaws.Config, lb model.LoadBala
 
 	lbNode := model.TraceNode{
 		Type:  nodeType,
-		Name:  fmt.Sprintf("%s (%s)", lb.Name, lb.Scheme),
+		Name:  fmt.Sprintf(fmtNameValue, lb.Name, lb.Scheme),
 		ID:    lb.ARN,
 		Value: lb.DNSName,
 	}
@@ -481,8 +556,7 @@ func matchPattern(text, pattern string) bool {
 	rePattern = "^" + rePattern + "$"
 
 	// Special case for ALB: if pattern ends with /*, it should also match the path without the trailing slash
-	if strings.HasSuffix(pattern, "/*") {
-		prefix := strings.TrimSuffix(pattern, "/*")
+	if prefix, ok := strings.CutSuffix(pattern, "/*"); ok {
 		if text == prefix {
 			return true
 		}

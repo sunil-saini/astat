@@ -9,6 +9,8 @@ type RDSCluster struct {
 	IsPublic          string `header:"Public Access"`
 	InstanceCount     int    `header:"Instance Count"`
 	StorageType       string `header:"Storage Type"`
+	Endpoint          string `header:"Endpoint"`
+	ReaderEndpoint    string `header:"Reader Endpoint"`
 	CreateTime        string `header:"Created At"`
 }
 

@@ -9,6 +9,7 @@ const (
 	NodeTargetGroup = "TargetGroup"
 	NodeOrigin      = "Origin"
 	NodeDNS         = "DNS"
+	NodeRDS         = "RDS"
 )
 
 type TraceNode struct {
