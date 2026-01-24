@@ -5,6 +5,7 @@ type CloudFrontDistribution struct {
 	Domain        string            `header:"Domain"`
 	Status        string            `header:"Status"`
 	Aliases       string            `header:"Aliases"`
+	Type          string            `header:"Type"`
 	LastUpdated   string            `header:"LastUpdated"`
 	Origins       map[string]string // ID -> DomainName
 	DefaultOrigin string
